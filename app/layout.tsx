@@ -48,6 +48,9 @@ const pixel = localFont({
 export const metadata: Metadata = {
   title: "Tuesday",
   description: "Tuesday",
+  icons: {
+    icon: "/images/logo.webp",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -58,7 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         "h-full antialiased font-sans",
         inter.variable,
         hirro.variable,
-        pixel.variable
+        pixel.variable,
       )}
     >
       <body className="min-h-full flex flex-col dark">
