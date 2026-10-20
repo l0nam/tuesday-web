@@ -226,7 +226,7 @@ export function HeroSection({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 120, scale: 0.94 }}
                 transition={{ duration: 0.9, delay: 0.2, ease: EASE }}
-                className="relative aspect-square w-full max-w-150"
+                className="relative aspect-square w-full max-w-150 mt-3"
               >
                 <div className="absolute inset-x-0 bottom-0 h-90 overflow-hidden rounded-xl">
                   <div className="pointer-events-none absolute inset-0 bg-radial-[at_60%_100%] from-lime-200 via-green-500 to-emerald-700" />

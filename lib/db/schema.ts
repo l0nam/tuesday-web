@@ -1,0 +1,459 @@
+import {
+  bigint,
+  boolean,
+  char,
+  date,
+  datetime,
+  index,
+  int,
+  json,
+  mysqlTable,
+  primaryKey,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
+
+/**
+ * Схема БД сайта (MariaDB/MySQL).
+ *
+ * Все даты хранятся в UTC и выставляются приложением (не DEFAULT CURRENT_TIMESTAMP),
+ * чтобы результат не зависел от часового пояса сервера БД.
+ */
+
+const ts = (name: string) => datetime(name, { mode: "date", fsp: 3 });
+const createdAt = () =>
+  ts("created_at")
+    .notNull()
+    .$defaultFn(() => new Date());
+const updatedAt = () =>
+  ts("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdate(() => new Date());
+
+export const onlineSample = mysqlTable("online_sample", {
+  bucket: ts("bucket").primaryKey(),
+  online: int("online", { unsigned: true }).notNull(),
+});
+/* ------------------------------------------------------------------ */
+/* Better Auth                                                          */
+/* Имена экспортов (user, session, account, verification) важны:       */
+/* адаптер ищет таблицы по именам моделей.                             */
+/* ------------------------------------------------------------------ */
+
+export const user = mysqlTable("user", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const session = mysqlTable(
+  "session",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    expiresAt: ts("expires_at").notNull(),
+    token: varchar("token", { length: 255 }).notNull().unique(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("session_user_idx").on(t.userId)],
+);
+
+export const account = mysqlTable(
+  "account",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    accountId: varchar("account_id", { length: 255 }).notNull(),
+    providerId: varchar("provider_id", { length: 64 }).notNull(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: ts("access_token_expires_at"),
+    refreshTokenExpiresAt: ts("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("account_user_idx").on(t.userId),
+    // Один Discord-аккаунт не может быть привязан к двум пользователям сайта
+    uniqueIndex("account_provider_account_uidx").on(t.providerId, t.accountId),
+  ],
+);
+
+export const verification = mysqlTable(
+  "verification",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    identifier: varchar("identifier", { length: 255 }).notNull(),
+    value: text("value").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("verification_identifier_idx").on(t.identifier)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Игрок: Discord, привязанный игровой аккаунт и баланс                 */
+/* ------------------------------------------------------------------ */
+
+export const player = mysqlTable(
+  "player",
+  {
+    userId: varchar("user_id", { length: 36 })
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    discordId: varchar("discord_id", { length: 32 }).notNull().unique(),
+    /** UUID игрока без дефисов, нижний регистр. NULL, пока Discord не привязан к игровому аккаунту. */
+    mcUuid: char("mc_uuid", { length: 32 }).unique(),
+    mcName: varchar("mc_name", { length: 32 }),
+    /** Баланс Вторничков. Меняется только через lib/wallet.ts (вместе с записью в ledger). */
+    balance: int("balance", { unsigned: true }).notNull().default(0),
+    linkCheckedAt: ts("link_checked_at"),
+    linkedAt: ts("linked_at"),
+
+    /* Публичный профиль */
+    /** Описание профиля в Markdown (GFM), пишет сам игрок */
+    bio: text("bio"),
+    /** Показывать ли Discord-ник в профиле */
+    showDiscord: boolean("show_discord").notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("player_mc_name_idx").on(t.mcName)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Журнал операций с Вторничками (источник истины для истории)         */
+/* ------------------------------------------------------------------ */
+
+export const LEDGER_TYPES = [
+  "achievement",
+  "city",
+  "playtime",
+  "activity",
+  "shop_purchase",
+  "shop_refund",
+  "admin",
+] as const;
+export type LedgerType = (typeof LEDGER_TYPES)[number];
+
+export const ledger = mysqlTable(
+  "ledger",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Со знаком: начисление > 0, списание < 0 */
+    amount: int("amount").notNull(),
+    balanceAfter: int("balance_after", { unsigned: true }).notNull(),
+    type: varchar("type", { length: 32 }).$type<LedgerType>().notNull(),
+    /** Человекочитаемая ссылка на источник: id достижения, название товара и т.д. */
+    ref: varchar("ref", { length: 191 }),
+    /** Уникальный ключ операции: повторное событие с тем же ключом не начислит дважды */
+    idempotencyKey: varchar("idempotency_key", { length: 191 })
+      .notNull()
+      .unique(),
+    meta: json("meta").$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("ledger_user_created_idx").on(t.userId, t.createdAt)],
+);
+
+/**
+ * Награды игроков, которые ещё не зарегистрировались на сайте / не привязали аккаунт.
+ * Зачисляются на баланс при привязке игрового аккаунта (см. claimPendingRewards).
+ */
+export const pendingReward = mysqlTable(
+  "pending_reward",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
+    mcUuid: char("mc_uuid", { length: 32 }).notNull(),
+    amount: int("amount", { unsigned: true }).notNull(),
+    type: varchar("type", { length: 32 }).$type<LedgerType>().notNull(),
+    ref: varchar("ref", { length: 191 }),
+    idempotencyKey: varchar("idempotency_key", { length: 191 })
+      .notNull()
+      .unique(),
+    meta: json("meta").$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pending_reward_uuid_idx").on(t.mcUuid)],
+);
+
+/** Сколько часов наигранного времени уже оплачено (по UUID, даже до регистрации на сайте). */
+export const playtimeProgress = mysqlTable("playtime_progress", {
+  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+  creditedUnits: int("credited_units", { unsigned: true }).notNull().default(0),
+  updatedAt: updatedAt(),
+});
+
+/** Известные ники игроков по UUID (из событий плагина и Mojang API). */
+export const mcProfile = mysqlTable(
+  "mc_profile",
+  {
+    mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+    name: varchar("name", { length: 32 }).notNull(),
+    updatedAt: updatedAt(),
+  },
+  // Страница профиля ищет игрока по нику: /players/{name}
+  (t) => [index("mc_profile_name_idx").on(t.name)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Статистика игрока для профиля (данные присылает плагин)             */
+/* Работает по UUID: профиль есть даже у игрока без аккаунта на сайте. */
+/* ------------------------------------------------------------------ */
+
+export const playerStats = mysqlTable("player_stats", {
+  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+  /** Общее наигранное время, секунды (накопительный итог от плагина) */
+  totalSeconds: bigint("total_seconds", { mode: "number", unsigned: true })
+    .notNull()
+    .default(0),
+  online: boolean("online").notNull().default(false),
+  firstSeenAt: ts("first_seen_at")
+    .notNull()
+    .$defaultFn(() => new Date()),
+  /** Последняя активность (вход, выход или сердцебиение плагина) */
+  lastSeenAt: ts("last_seen_at"),
+  /** Момент предыдущего отчёта о наигранном времени: нужен, чтобы честно делить время через полночь */
+  playtimeReportedAt: ts("playtime_reported_at"),
+  updatedAt: updatedAt(),
+});
+
+/** Игровое время по дням (по часовому поясу сайта). Сам факт строки означает "заходил в этот день". */
+export const playerDay = mysqlTable(
+  "player_day",
+  {
+    mcUuid: char("mc_uuid", { length: 32 }).notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    seconds: int("seconds", { unsigned: true }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.mcUuid, t.day] })],
+);
+
+/**
+ * Кэш Discord-данных игрока (по UUID, даже без аккаунта на сайте): роли, которые сайт умеет показывать
+ * (см. ROLE_BADGES в lib/profile/config.ts), и Discord-ник. Заполняется при просмотре профиля (lib/profile/discord.ts).
+ * Discord ID берётся из аккаунта сайта, а если его нет, то из связки DiscordSRV.
+ */
+export const playerDiscord = mysqlTable("player_discord", {
+  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+  /** NULL: у игрока нет привязанного Discord */
+  discordId: varchar("discord_id", { length: 32 }),
+  username: varchar("username", { length: 64 }),
+  /** Ключи ролей сайта (admin, moderator, player), а не ID ролей Discord */
+  roles: json("roles").$type<string[]>().notNull(),
+  /** Когда обновляли в последний раз (или начали обновлять); NULL: ещё ни разу */
+  checkedAt: ts("checked_at"),
+  updatedAt: updatedAt(),
+});
+
+/** Донат-статус игрока (источник: плагин). tier из DONATE_TIERS в lib/profile/config.ts. */
+export const playerDonate = mysqlTable("player_donate", {
+  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+  tier: varchar("tier", { length: 32 }).notNull(),
+  /** NULL = бессрочно */
+  expiresAt: ts("expires_at"),
+  updatedAt: updatedAt(),
+});
+
+/** Город (бывшая община), в котором состоит игрок (источник: плагин). */
+export const playerCity = mysqlTable("player_city", {
+  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
+  cityId: varchar("city_id", { length: 100 }).notNull(),
+  cityName: varchar("city_name", { length: 120 }).notNull(),
+  /** Роль в городе, например owner / member (как называет плагин) */
+  role: varchar("role", { length: 32 }),
+  members: int("members", { unsigned: true }),
+  updatedAt: updatedAt(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Города сайта: создаются игроками, управляются владельцем            */
+/* (lib/cities/*). player_city выше это городская принадлежность, которую */
+/* присылает плагин; эти таблицы - источник истины для самого сайта.   */
+/* ------------------------------------------------------------------ */
+
+export const CITY_ROLES = ["owner", "coowner", "member"] as const;
+export type CityRole = (typeof CITY_ROLES)[number];
+
+export const city = mysqlTable("city", {
+  id: int("id", { unsigned: true }).primaryKey().autoincrement(),
+  /** Название. Выбирается при создании и больше не меняется. */
+  name: varchar("name", { length: 32 }).notNull(),
+  /** Название в нижнем регистре без лишних пробелов: гарантирует уникальность без учёта регистра */
+  nameKey: varchar("name_key", { length: 64 }).notNull().unique(),
+  description: varchar("description", { length: 300 }),
+  /** Владелец. Уникален: один игрок может создать только один город. */
+  ownerId: varchar("owner_id", { length: 36 })
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  /** Флаг города в формате lib/cities/banner.ts. Задаётся при создании и больше не меняется. */
+  bannerCode: varchar("banner_code", { length: 255 }).notNull(),
+  discordUrl: varchar("discord_url", { length: 255 }),
+  /** Открыт ли набор: подавать заявки можно только пока true */
+  recruiting: boolean("recruiting").notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Жители города. Первичный ключ - пользователь: игрок может состоять только в одном городе,
+ * и база не даст нарушить это ограничение даже при гонке запросов.
+ */
+export const cityMember = mysqlTable(
+  "city_member",
+  {
+    userId: varchar("user_id", { length: 36 })
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    cityId: int("city_id", { unsigned: true })
+      .notNull()
+      .references(() => city.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 16 })
+      .$type<CityRole>()
+      .notNull()
+      .default("member"),
+    joinedAt: ts("joined_at")
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("city_member_city_idx").on(t.cityId, t.role)],
+);
+
+export const APPLICATION_STATUSES = [
+  "pending",
+  "accepted",
+  "rejected",
+  "cancelled",
+] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+/** Заявки на вступление. На пару (город, игрок) одна строка: повторная заявка переиспользует её. */
+export const cityApplication = mysqlTable(
+  "city_application",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
+    cityId: int("city_id", { unsigned: true })
+      .notNull()
+      .references(() => city.id, { onDelete: "cascade" }),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Сообщение от игрока ("о себе"), необязательно */
+    message: varchar("message", { length: 300 }),
+    status: varchar("status", { length: 16 })
+      .$type<ApplicationStatus>()
+      .notNull()
+      .default("pending"),
+    /** Причина отказа: обязательна при status = rejected, видна заявителю */
+    rejectReason: varchar("reject_reason", { length: 300 }),
+    reviewedBy: varchar("reviewed_by", { length: 36 }),
+    reviewedAt: ts("reviewed_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("city_application_city_user_uidx").on(t.cityId, t.userId),
+    index("city_application_user_idx").on(t.userId, t.status),
+    index("city_application_city_status_idx").on(t.cityId, t.status),
+  ],
+);
+
+export type City = typeof city.$inferSelect;
+export type CityMemberRow = typeof cityMember.$inferSelect;
+export type CityApplication = typeof cityApplication.$inferSelect;
+
+/* ------------------------------------------------------------------ */
+/* Магазин                                                              */
+/* ------------------------------------------------------------------ */
+
+export const shopItem = mysqlTable("shop_item", {
+  id: int("id", { unsigned: true }).primaryKey().autoincrement(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  name: varchar("name", { length: 120 }).notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url", { length: 255 }),
+  price: int("price", { unsigned: true }).notNull(),
+  /**
+   * Команды консоли, которые плагин выполнит при выдаче.
+   * Плейсхолдеры: {player} (ник), {uuid} (UUID с дефисами). Пример: ["give {player} minecraft:diamond 16"]
+   */
+  commands: json("commands").$type<string[]>().notNull(),
+  /** NULL = без ограничения */
+  stock: int("stock", { unsigned: true }),
+  enabled: boolean("enabled").notNull().default(true),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const ORDER_STATUSES = [
+  "pending",
+  "processing",
+  "delivered",
+  "failed",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export const shopOrder = mysqlTable(
+  "shop_order",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    itemId: int("item_id", { unsigned: true })
+      .notNull()
+      .references(() => shopItem.id, { onDelete: "restrict" }),
+    itemName: varchar("item_name", { length: 120 }).notNull(),
+    mcUuid: char("mc_uuid", { length: 32 }).notNull(),
+    mcName: varchar("mc_name", { length: 32 }),
+    price: int("price", { unsigned: true }).notNull(),
+    /** Снимок команд на момент покупки (цена и команды товара могут измениться позже) */
+    commands: json("commands").$type<string[]>().notNull(),
+    status: varchar("status", { length: 16 })
+      .$type<OrderStatus>()
+      .notNull()
+      .default("pending"),
+    failReason: varchar("fail_reason", { length: 255 }),
+    createdAt: createdAt(),
+    claimedAt: ts("claimed_at"),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [
+    index("shop_order_status_idx").on(t.status, t.claimedAt),
+    index("shop_order_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export type Player = typeof player.$inferSelect;
+export type ShopItem = typeof shopItem.$inferSelect;
+export type ShopOrder = typeof shopOrder.$inferSelect;

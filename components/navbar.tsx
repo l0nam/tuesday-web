@@ -18,25 +18,35 @@ import {
   useSpring,
 } from "motion/react";
 import { cn } from "cn";
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   BookIcon,
-  InfoIcon,
-  MapPinIcon,
+  BuildingsIcon,
   TrendUpIcon,
+  UserIcon,
+  WalletIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import BrandTitle from "./brand-title";
+import { PlayerHead } from "./player/player-head";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { DoorIcon } from "@phosphor-icons/react";
+import { signOut } from "@/lib/auth/auth-client";
+import { formatNumber } from "@/lib/utils/formatting";
+import { LINKS } from "@/lib/data";
 
 const NAV_LINKS = [
-  { icon: InfoIcon, label: "О сервере", href: "/about" },
-  { icon: BookIcon, label: "Вики", href: "/wiki" },
+  { icon: BookIcon, label: "Вики", href: LINKS["wiki"].link },
   { icon: TrendUpIcon, label: "Статистика", href: "/stats" },
-  { icon: MapPinIcon, label: "Карта", href: "/map" },
+  { icon: BuildingsIcon, label: "Города", href: "/cities" },
 ];
 
 const ENTER_DELAY = 2.4;
-
 const SCROLLED_AT = 24;
 const REVEAL_AT = 8;
 
@@ -75,28 +85,59 @@ function DesktopLinks({ pathname }: { pathname: string }) {
     >
       {NAV_LINKS.map(({ label, href }) => {
         const active = isActive(pathname, href);
+        const external = href.startsWith("http");
+
         return (
           <li key={href}>
-            <Link
-              href={href}
-              aria-current={active ? "page" : undefined}
-              onMouseEnter={() => setHovered(href)}
-              onFocus={() => setHovered(href)}
-              onBlur={() => setHovered(null)}
-              className={cn(
-                "relative flex h-11 px-3 items-center justify-center rounded-lg text-sm font-medium outline-none transition-colors duration-200",
-                selected === href ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {selected === href && (
-                <motion.span
-                  layoutId="nav-selector"
-                  transition={SNAP}
-                  className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-primary"
-                />
-              )}
-              <span className="relative">{label}</span>
-            </Link>
+            {external ? (
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                onMouseEnter={() => setHovered(href)}
+                onFocus={() => setHovered(href)}
+                onBlur={() => setHovered(null)}
+                className={cn(
+                  "relative flex h-11 px-3 items-center justify-center rounded-lg text-sm font-medium outline-none transition-colors duration-200",
+                  selected === href
+                    ? "text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {selected === href && (
+                  <motion.span
+                    layoutId="nav-selector"
+                    transition={SNAP}
+                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-primary"
+                  />
+                )}
+                <span className="relative">{label}</span>
+              </Link>
+            ) : (
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                onMouseEnter={() => setHovered(href)}
+                onFocus={() => setHovered(href)}
+                onBlur={() => setHovered(null)}
+                className={cn(
+                  "relative flex h-11 px-3 items-center justify-center rounded-lg text-sm font-medium outline-none transition-colors duration-200",
+                  selected === href
+                    ? "text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {selected === href && (
+                  <motion.span
+                    layoutId="nav-selector"
+                    transition={SNAP}
+                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-primary"
+                  />
+                )}
+                <span className="relative">{label}</span>
+              </Link>
+            )}
           </li>
         );
       })}
@@ -110,10 +151,16 @@ function MobileMenu({
   pathname,
   onClose,
   onAuthClick,
+  user,
+  player,
+  balance,
 }: {
   pathname: string;
   onClose: () => void;
   onAuthClick?: () => void;
+  user?: NavbarUser | null;
+  player?: NavbarPlayer | null;
+  balance: number | null;
 }) {
   return (
     <motion.div
@@ -155,17 +202,21 @@ function MobileMenu({
         })}
       </ul>
 
-      <div className="mt-2 flex flex-col gap-2 border-t border-border p-2 pt-3">
-        <Button
-          size="lg"
-          className="w-full rounded-lg"
-          onClick={() => {
-            onClose();
-            onAuthClick?.();
-          }}
-        >
-          Авторизоваться
-        </Button>
+      <div className="mt-2 flex flex-col gap-2 border-t p-2 pt-3">
+        {user ? (
+          <NavbarAccount user={user} player={player} mobile balance={balance} />
+        ) : (
+          <Button
+            size="lg"
+            className="w-full rounded-lg"
+            onClick={() => {
+              onClose();
+              onAuthClick?.();
+            }}
+          >
+            Авторизоваться
+          </Button>
+        )}
       </div>
     </motion.div>
   );
@@ -173,8 +224,165 @@ function MobileMenu({
 
 /* ───────────── Navbar ───────────── */
 
-export function Navbar({ onAuthClick }: { onAuthClick?: () => void }) {
-  const pathname = usePathname() ?? "/";
+type NavbarUser = {
+  name: string;
+  image?: string | null;
+};
+
+type NavbarPlayer = {
+  mcName: string | null;
+};
+
+type NavbarProps = {
+  onAuthClick?: () => void;
+  user?: NavbarUser | null;
+  player?: NavbarPlayer | null;
+  balance?: number | null;
+};
+
+function NavbarAccount({
+  user,
+  player,
+  mobile = false,
+  balance,
+  onClose,
+}: {
+  user: NavbarUser;
+  player?: NavbarPlayer | null;
+  mobile?: boolean;
+  balance: number | null;
+  onClose?: () => void;
+}) {
+  const mcName = player?.mcName;
+  const displayName = mcName || user.name;
+
+  const links = [
+    {
+      label: "Профиль",
+      href: "/profile",
+      icon: UserIcon,
+    },
+    {
+      label: "Кошелёк",
+      href: "/shop",
+      icon: WalletIcon,
+      value: balance,
+    },
+  ] as const;
+
+  const accountLinks = links.map(({ label, href, icon: Icon, ...item }) => (
+    <Link
+      key={label}
+      href={href}
+      aria-label={label}
+      onClick={onClose}
+      className={cn(
+        buttonVariants({
+          variant: "ghost",
+        }),
+        "w-full justify-start",
+      )}
+    >
+      <Icon weight="bold" />
+      {label}
+
+      {"value" in item && (
+        <span className="ml-auto tabular-nums px-3 py-0.5 place-items-center rounded bg-primary">
+          {formatNumber(Number(item.value), true) ?? "—"}
+        </span>
+      )}
+    </Link>
+  ));
+
+  const SignOutButton = ({ className }: { className?: string }) => (
+    <Button
+      variant="destructive"
+      onClick={() => void handleSignOut()}
+      className={cn("justify-start w-full", className)}
+    >
+      <DoorIcon weight="bold" />
+      Выйти
+    </Button>
+  );
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      window.location.href = "/";
+    }
+  };
+
+  if (mobile) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 px-2 py-2">
+          <PlayerHead nickname={mcName} className="size-8 rounded-md" />
+
+          <span className="min-w-0 truncate text-sm font-medium">
+            {displayName}
+          </span>
+
+          {player && !mcName && (
+            <span
+              className="size-2 shrink-0 rounded-full bg-amber-400"
+              title="Minecraft-аккаунт не привязан"
+            />
+          )}
+        </div>
+
+        {accountLinks}
+
+        <div className="w-full h-px bg-border my-1" />
+
+        <SignOutButton className="mt-1" />
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="hidden items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/5 md:inline-flex"
+        aria-label={`Меню аккаунта: ${displayName}`}
+      >
+        <PlayerHead nickname={mcName} className="size-8 rounded-md" />
+
+        <span className="max-w-32 truncate text-sm font-medium">
+          {displayName}
+        </span>
+
+        {player && !mcName && (
+          <span
+            className="size-2 rounded-full bg-amber-400"
+            title="Minecraft-аккаунт не привязан"
+          />
+        )}
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-52">
+        {accountLinks.map((link) => (
+          <DropdownMenuItem key={link.key} className="p-0">
+            {link}
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuSeparator />
+
+        <SignOutButton />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function Navbar({
+  onAuthClick,
+  user = null,
+  player = null,
+  balance = null,
+}: NavbarProps) {
+  const pathname = usePathname();
+  const currentPath = pathname ?? "/";
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [reveal, setReveal] = useState<
@@ -220,7 +428,7 @@ export function Navbar({ onAuthClick }: { onAuthClick?: () => void }) {
     };
   }, [sync]);
 
-  const introDelay = pathname === "/" ? ENTER_DELAY : 0;
+  const introDelay = currentPath === "/" ? ENTER_DELAY : 0;
   useEffect(() => {
     const timer = setTimeout(() => {
       if (revealedRef.current) return;
@@ -238,7 +446,7 @@ export function Navbar({ onAuthClick }: { onAuthClick?: () => void }) {
 
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+  }, [currentPath]);
 
   useEffect(() => {
     if (!open) return;
@@ -279,15 +487,23 @@ export function Navbar({ onAuthClick }: { onAuthClick?: () => void }) {
             >
               <Logo />
 
-              <DesktopLinks pathname={pathname} />
+              <DesktopLinks pathname={currentPath} />
 
               <div className="flex items-center gap-2">
-                <Button
-                  className="hidden rounded-lg px-4 md:inline-flex"
-                  onClick={onAuthClick}
-                >
-                  Авторизоваться
-                </Button>
+                {user ? (
+                  <NavbarAccount
+                    user={user}
+                    player={player}
+                    balance={balance}
+                  />
+                ) : (
+                  <Button
+                    className="hidden rounded-lg px-4 md:inline-flex"
+                    onClick={onAuthClick}
+                  >
+                    Авторизоваться
+                  </Button>
+                )}
 
                 <button
                   type="button"
@@ -324,9 +540,12 @@ export function Navbar({ onAuthClick }: { onAuthClick?: () => void }) {
             <AnimatePresence>
               {open && (
                 <MobileMenu
-                  pathname={pathname}
+                  pathname={currentPath}
                   onClose={() => setOpen(false)}
                   onAuthClick={onAuthClick}
+                  user={user}
+                  player={player}
+                  balance={balance}
                 />
               )}
             </AnimatePresence>

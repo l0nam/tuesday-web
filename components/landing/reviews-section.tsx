@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { Section, SectionHeading } from "../ui/section";
-import { PlayerHead } from "../player-head";
+import { PlayerHead } from "../player/player-head";
 
 export type Review = {
   nick: string;

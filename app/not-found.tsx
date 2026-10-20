@@ -1,12 +1,6 @@
 import Link from "next/link";
-import {
-  ArrowLeftIcon,
-  CompassIcon,
-  HouseIcon,
-  MapTrifoldIcon,
-  SmileyIcon,
-} from "@phosphor-icons/react/dist/ssr";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { HouseIcon, SmileyIcon } from "@phosphor-icons/react/dist/ssr";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
 
 export default function NotFound() {
@@ -21,18 +15,9 @@ export default function NotFound() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center text-center">
-        <div className="relative mb-4 grid size-12 place-items-center rounded-md bg-card ring-1 ring-inset ring-border">
-          <CompassIcon
-            className="relative size-7 text-primary"
-            weight="duotone"
-          />
-        </div>
-
         <p className="title select-none text-[100px] font-medium">404</p>
 
         <div className="mt-4 space-y-3">
-          <p className="font-medium text-primary">Похоже, вы заблудились</p>
-
           <h1 className="title text-3xl tracking-tight sm:text-4xl">
             Этой страницы не существует
           </h1>
@@ -44,23 +29,23 @@ export default function NotFound() {
         </div>
 
         <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-          <Link
-            href="/"
-            className={cn(buttonVariants({ size: "lg" }), "text-background")}
-          >
+          <Link href="/" className={cn(buttonVariants({ size: "lg" }))}>
             <HouseIcon weight="bold" />
             На главную
           </Link>
-          <Link
-            href="/map"
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            <MapTrifoldIcon weight="bold" />
-            Карта сервера
-          </Link>
         </div>
 
-        <p className="mt-10 text-sm inline-flex gap-1.5 text-muted-foreground items-center">
+        <iframe
+          title="Lofi Cafe"
+          src="https://loficafe.net/embed/chilling?utm_source=embed&utm_medium=iframe&utm_campaign=station_embed"
+          width="640"
+          height="66"
+          loading="lazy"
+          allow="autoplay"
+          className="block w-full border-0 rounded-xl mt-8"
+        />
+
+        <p className="mt-3 text-sm inline-flex gap-1.5 text-muted-foreground items-center">
           Ну, или оставайтесь тут и отдохните{" "}
           <SmileyIcon weight="bold" className="size-4" />
         </p>

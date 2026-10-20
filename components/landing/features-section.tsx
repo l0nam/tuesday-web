@@ -1,15 +1,14 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
 import { cn } from "cn";
 import { Section, SectionHeading } from "../ui/section";
 import {
   ArrowClockwiseIcon,
   ChartBarIcon,
   CubeIcon,
-  MapPinIcon,
   ShieldIcon,
-  UsersIcon,
+  UsersThreeIcon,
+  BuildingsIcon,
 } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
 
@@ -22,18 +21,13 @@ type Feature = {
 const FEATURES: Feature[] = [
   {
     icon: CubeIcon,
-    title: "Ванильное выживание",
-    text: "Игра идёт по ванильным правилам, с небольшим изменённием механик. Выживание и творчество остаются главными.",
+    title: "Полуванильное выживание",
+    text: "Мы добавляем интересные механики и сюжет на наш сервер чтобы сделать игру еще интереснее. Однако выживание и творчество остаются главными.",
   },
   {
-    icon: UsersIcon,
-    title: "Общины",
-    text: "Объединяйтесь с другими игроками и развивайте свои города вместе. У каждой общины есть страница на сайте.",
-  },
-  {
-    icon: MapPinIcon,
-    title: "Карта сервера",
-    text: "Смотрите мир сервера прямо в браузере: постройки, города и значимые объекты.",
+    icon: BuildingsIcon,
+    title: "Города",
+    text: "Объединяйтесь с другими игроками и развивайте свои города вместе. У каждого города есть страница на сайте.",
   },
   {
     icon: ChartBarIcon,
@@ -49,6 +43,11 @@ const FEATURES: Feature[] = [
     icon: ShieldIcon,
     title: "Единый аккаунт",
     text: "Авторизуйтесь на сайте один раз и пользуйтесь профилем, статистикой и кошельком.",
+  },
+  {
+    icon: UsersThreeIcon,
+    title: "Лучшее комьюнити",
+    text: "У нас играют отзывчивые и доброжелательные люди, которые всегда рады помочь.",
   },
 ];
 

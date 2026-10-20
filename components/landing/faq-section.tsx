@@ -13,7 +13,7 @@ const FAQ: Faq[] = [
   {
     question: "Как зайти на сервер?",
     answer:
-      "Скопируйте адрес сервера в виджете вверху страницы и добавьте его в список серверов в игре. Затем авторизуйтесь на сайте, чтобы пользоваться профилем и кошельком.",
+      "Попасть на сервер можно по проходке. Ее можно купить на сайте доната или получить бесплатно заполним анкету в дискорде. Затем авторизуйтесь на сайте, чтобы пользоваться профилем и кошельком.",
   },
   {
     question: "Какая версия игры нужна?",
@@ -56,7 +56,7 @@ function FaqItem({
   const buttonId = `${id}-button`;
 
   return (
-    <li className="border-b border-border first:border-t">
+    <li className="border-b  first:border-t">
       <h3>
         <button
           id={buttonId}
@@ -116,9 +116,19 @@ export function FaqSection() {
             <Link
               href={LINKS["wiki"].link}
               target="_blank"
+              rel="noopener noreferrer"
               className="link inline-flex items-center gap-0.5"
             >
               вики <LinkIcon weight="bold" className="text-sm" />
+            </Link>{" "}
+            или задайте свой вопрос в{" "}
+            <Link
+              href={LINKS["discord"].link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link inline-flex items-center gap-0.5"
+            >
+              дискорд <LinkIcon weight="bold" className="text-sm" />
             </Link>
             .
           </p>

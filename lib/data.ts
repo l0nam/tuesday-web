@@ -1,11 +1,11 @@
+import { Icon } from "@phosphor-icons/react";
 import {
   BookOpenIcon,
   DiscordLogoIcon,
   HeartIcon,
-  Icon,
   TiktokLogoIcon,
   YoutubeLogoIcon,
-} from "@phosphor-icons/react";
+} from "@phosphor-icons/react/dist/ssr";
 
 type SocialLink = {
   name: string;
@@ -48,14 +48,3 @@ export const LINKS: Record<string, SocialLink> = {
       "bg-[#64748B] dark:bg-[#94A3B8] hover:bg-[#475569] dark:hover:bg-[#CBD5E1]",
   },
 };
-
-export function currency(n: number) {
-  const abs = Math.abs(Math.trunc(n));
-  const mod10 = abs % 10;
-  const mod100 = abs % 100;
-  if (mod10 === 1 && mod100 !== 11) return "Вторничек";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return "Вторничка";
-  }
-  return "Вторничков";
-}

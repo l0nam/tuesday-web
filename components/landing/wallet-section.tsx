@@ -14,7 +14,7 @@ import {
   WalletIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { currency } from "@/lib/data";
+import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
 
 const POINTS = [
   "Баланс привязан к вашему игровому аккаунту",
@@ -27,8 +27,6 @@ const EARN: { icon: Icon; label: string }[] = [
   { icon: ClockIcon, label: "Наигранное время" },
   { icon: ChatsCircleIcon, label: "Жизнь сервера" },
 ];
-
-const money = new Intl.NumberFormat("ru-RU");
 
 type WalletCardProps = {
   balance: number | null;
@@ -52,10 +50,10 @@ function WalletCard({ balance, shopHref, onAuthClick }: WalletCardProps) {
               <p className="text-sm font-medium opacity-70">Баланс кошелька</p>
               <p className="mt-1 flex flex-wrap items-baseline gap-x-2.5">
                 <span className="title text-4xl tabular-nums sm:text-5xl">
-                  {money.format(balance)}
+                  {formatNumber(balance)}
                 </span>
                 <span className="text-lg font-medium opacity-70">
-                  {currency(balance)}
+                  {formatСurrency(balance)}
                 </span>
               </p>
             </div>
@@ -124,10 +122,8 @@ export function WalletSection({
   shopHref = "/shop",
   onAuthClick,
 }: {
-  /** Баланс игрока во Вторничках. `null` — игрок не авторизован. */
   balance?: number | null;
   shopHref?: string;
-  /** Тот же обработчик входа, что и у Navbar. */
   onAuthClick?: () => void;
 }) {
   return (

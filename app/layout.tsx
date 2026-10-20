@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/footer";
-import { Navbar } from "@/components/navbar";
+import { ConnectedNavbar } from "@/components/connected";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -65,7 +65,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       )}
     >
       <body className="min-h-full flex flex-col dark">
-        <Navbar />
+        <ConnectedNavbar />
         {children}
         <Footer />
       </body>

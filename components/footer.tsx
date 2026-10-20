@@ -4,14 +4,14 @@ import { LINKS } from "@/lib/data";
 import Link from "next/link";
 import BrandTitle from "./brand-title";
 import { LinkIcon } from "@phosphor-icons/react";
+import { cn } from "cn";
 
 type FooterLink = { label: string; href: string };
 
 const SERVER_LINKS: FooterLink[] = [
   { label: "Главная", href: "/" },
-  { label: "О сервер", href: "/about" },
   { label: "Статистика", href: "/stats" },
-  { label: "Карта", href: "/map" },
+  { label: "Города", href: "/cities" },
 ];
 
 const INFO_LINKS: FooterLink[] = [
@@ -63,18 +63,24 @@ function FooterColumn({
           return (
             <li key={link.label}>
               {external ? (
-                <a
+                <Link
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${linkClass} group inline-flex items-center gap-2`}
+                  className={cn(
+                    "group inline-flex items-center gap-2",
+                    linkClass,
+                  )}
                 >
                   {content}
-                </a>
+                </Link>
               ) : (
                 <Link
                   href={link.href}
-                  className={`${linkClass} group inline-flex items-center gap-2`}
+                  className={cn(
+                    "group inline-flex items-center gap-2",
+                    linkClass,
+                  )}
                 >
                   {content}
                 </Link>
@@ -88,8 +94,6 @@ function FooterColumn({
 }
 
 export function Footer() {
-  // const year = new Date().getFullYear();
-
   return (
     <footer className="border-t">
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-6 py-14 sm:grid-cols-2 lg:grid-cols-[3fr_1fr_1fr_1fr] lg:px-10">
