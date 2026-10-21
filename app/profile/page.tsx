@@ -56,6 +56,7 @@ async function ProfileContent() {
   }
 
   const sync = await syncLink(session.user.id);
+  const ownReview = await getOwnReview(session.user.id);
 
   if (!sync?.player.mcName) {
     return (
@@ -123,11 +124,10 @@ async function ProfileContent() {
             </CardContent>
           </Card>
         </div>
+        <div className="w-full"><ReviewForm initialReview={ownReview} /></div>
       </main>
     );
   }
-
-  const ownReview = await getOwnReview(session.user.id);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
