@@ -457,3 +457,25 @@ export const shopOrder = mysqlTable(
 export type Player = typeof player.$inferSelect;
 export type ShopItem = typeof shopItem.$inferSelect;
 export type ShopOrder = typeof shopOrder.$inferSelect;
+
+
+/* ------------------------------------------------------------------ */
+/* Отзывы игроков о сервере                                            */
+/* ------------------------------------------------------------------ */
+
+/** Один отзыв на аккаунт. Уникальный user_id запрещает повторную публикацию на уровне БД. */
+export const serverReview = mysqlTable(
+  "server_review",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).primaryKey().autoincrement(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    text: varchar("text", { length: 500 }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("server_review_created_idx").on(t.createdAt)],
+);
+
+export type ServerReview = typeof serverReview.$inferSelect;
