@@ -2,8 +2,9 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { player, serverReview, user } from "@/lib/db/schema";
 
-export const SERVER_REVIEW_MAX_LENGTH = 500;
-export const SERVER_REVIEW_MIN_LENGTH = 10;
+import { SERVER_REVIEW_MAX_LENGTH, SERVER_REVIEW_MIN_LENGTH } from "@/lib/reviews/config";
+
+export { SERVER_REVIEW_MAX_LENGTH, SERVER_REVIEW_MIN_LENGTH } from "@/lib/reviews/config";
 
 export type PublicReview = {
   id: number;
