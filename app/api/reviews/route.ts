@@ -2,7 +2,8 @@ import { z } from "zod";
 import { getSessionFromRequest } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { serverReview } from "@/lib/db/schema";
-import { getOwnReview, SERVER_REVIEW_MAX_LENGTH, SERVER_REVIEW_MIN_LENGTH } from "@/lib/reviews";
+import { getOwnReview } from "@/lib/reviews";
+import { SERVER_REVIEW_MAX_LENGTH, SERVER_REVIEW_MIN_LENGTH } from "@/lib/reviews/config";
 import { checkSameOrigin, errorResponse, jsonResponse } from "@/lib/utils/http";
 
 const bodySchema = z.object({
