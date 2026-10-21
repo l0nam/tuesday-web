@@ -5,15 +5,18 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { ReviewsSection } from "@/components/landing/reviews-section";
 import { StatsCounters } from "@/components/landing/stats-counters";
 import { WikiSocialsCta } from "@/components/landing/wiki-socials-cta";
+import { getPublicReviews } from "@/lib/reviews";
 
-export default function Home() {
+export default async function Home() {
+  const reviews = await getPublicReviews();
+
   return (
     <main>
       <HeroSection />
       <StatsCounters />
       <FeaturesSection />
       <ConnectedWalletSection />
-      <ReviewsSection />
+      <ReviewsSection reviews={reviews} />
       <FaqSection />
       <WikiSocialsCta />
     </main>
