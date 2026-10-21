@@ -20,6 +20,7 @@ import { cn } from "cn";
 import { LINKS } from "@/lib/data";
 import { LinkStatus } from "./link-status";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { getOwnReview } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "Профиль",
@@ -126,12 +127,16 @@ async function ProfileContent() {
     );
   }
 
+  const ownReview = await getOwnReview(session.user.id);
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <Suspense fallback={<PlayerProfileFallback />}>
         <PlayerProfile name={sync.player.mcName} fromStats={false} />
-        <div className="mt-8"><ReviewForm /></div>
       </Suspense>
+      <div className="mt-8">
+        <ReviewForm initialReview={ownReview} />
+      </div>
     </main>
   );
 }
