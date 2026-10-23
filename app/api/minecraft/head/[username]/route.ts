@@ -14,18 +14,12 @@ const UUID_REGEX =
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{1,16}$/;
 
-export async function GET(
-  request: NextRequest,
-  { params }: RouteContext,
-) {
+export async function GET(request: NextRequest, { params }: RouteContext) {
   const { username } = await params;
   const player = username.trim();
   const size = Number(request.nextUrl.searchParams.get("size") ?? 64);
 
-  if (
-    !NICKNAME_REGEX.test(player) &&
-    !UUID_REGEX.test(player)
-  ) {
+  if (!NICKNAME_REGEX.test(player) && !UUID_REGEX.test(player)) {
     return NextResponse.json(
       { error: "Некорректный ник или UUID игрока" },
       { status: 400 },

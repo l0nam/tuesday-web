@@ -9,17 +9,19 @@ import {
   type ApplicationStatus,
   type CityRole,
 } from "@/lib/db/schema";
-import { DEFAULT_BANNER, parseBannerCode, type Banner } from "@/lib/cities/banner";
-
-/** Чтение данных для страниц городов. Ничего не меняет. */
+import {
+  DEFAULT_BANNER,
+  parseBannerCode,
+  type Banner,
+} from "@/lib/cities/banner";
 
 function decodeBanner(code: string): Banner {
   const parsed = parseBannerCode(code);
   return parsed.ok ? parsed.banner : DEFAULT_BANNER;
 }
 
-/** Как называть игрока: игровой ник, а если аккаунт не привязан, то имя из Discord. */
-const displayName = (mcName: string | null, userName: string) => mcName ?? userName;
+const displayName = (mcName: string | null, userName: string) =>
+  mcName ?? userName;
 
 export interface CityListItem {
   id: number;
@@ -34,11 +36,13 @@ export interface CityListItem {
 }
 
 async function memberCounts(): Promise<Map<number, number>> {
-  const rows = await db.select({ cityId: cityMember.cityId, members: count() }).from(cityMember).groupBy(cityMember.cityId);
+  const rows = await db
+    .select({ cityId: cityMember.cityId, members: count() })
+    .from(cityMember)
+    .groupBy(cityMember.cityId);
   return new Map(rows.map((r) => [r.cityId, r.members]));
 }
 
-/** Все города: сначала самые населённые. */
 export async function listCities(): Promise<CityListItem[]> {
   const [rows, counts] = await Promise.all([
     db
@@ -70,7 +74,9 @@ export async function listCities(): Promise<CityListItem[]> {
       ownerName: displayName(r.mcName, r.userName),
       ownerMcName: r.mcName,
     }))
-    .sort((a, b) => b.members - a.members || a.name.localeCompare(b.name, "ru"));
+    .sort(
+      (a, b) => b.members - a.members || a.name.localeCompare(b.name, "ru"),
+    );
 }
 
 export interface CityDetails {
@@ -88,7 +94,10 @@ export interface CityDetails {
 export async function getCity(id: number): Promise<CityDetails | null> {
   const [row] = await db.select().from(city).where(eq(city.id, id)).limit(1);
   if (!row) return null;
-  const [{ members }] = await db.select({ members: count() }).from(cityMember).where(eq(cityMember.cityId, id));
+  const [{ members }] = await db
+    .select({ members: count() })
+    .from(cityMember)
+    .where(eq(cityMember.cityId, id));
   return {
     id: row.id,
     name: row.name,
@@ -110,9 +119,12 @@ export interface CityResident {
   joinedAt: Date;
 }
 
-const ROLE_ORDER: Record<CityRole, number> = { owner: 0, coowner: 1, member: 2 };
+const ROLE_ORDER: Record<CityRole, number> = {
+  owner: 0,
+  coowner: 1,
+  member: 2,
+};
 
-/** Жители города: владелец, совладельцы, затем остальные по дате вступления. */
 export async function listResidents(cityId: number): Promise<CityResident[]> {
   const rows = await db
     .select({
@@ -136,7 +148,11 @@ export async function listResidents(cityId: number): Promise<CityResident[]> {
       mcName: r.mcName,
       joinedAt: r.joinedAt,
     }))
-    .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.joinedAt.getTime() - b.joinedAt.getTime());
+    .sort(
+      (a, b) =>
+        ROLE_ORDER[a.role] - ROLE_ORDER[b.role] ||
+        a.joinedAt.getTime() - b.joinedAt.getTime(),
+    );
 }
 
 export interface Membership {
@@ -145,9 +161,15 @@ export interface Membership {
   role: CityRole;
 }
 
-export async function getMembership(userId: string): Promise<Membership | null> {
+export async function getMembership(
+  userId: string,
+): Promise<Membership | null> {
   const [row] = await db
-    .select({ cityId: cityMember.cityId, role: cityMember.role, cityName: city.name })
+    .select({
+      cityId: cityMember.cityId,
+      role: cityMember.role,
+      cityName: city.name,
+    })
     .from(cityMember)
     .innerJoin(city, eq(city.id, cityMember.cityId))
     .where(eq(cityMember.userId, userId))
@@ -163,7 +185,9 @@ export interface PendingApplication {
   createdAt: Date;
 }
 
-export async function listPendingApplications(cityId: number): Promise<PendingApplication[]> {
+export async function listPendingApplications(
+  cityId: number,
+): Promise<PendingApplication[]> {
   const rows = await db
     .select({
       id: cityApplication.id,
@@ -175,7 +199,12 @@ export async function listPendingApplications(cityId: number): Promise<PendingAp
     .from(cityApplication)
     .innerJoin(user, eq(user.id, cityApplication.userId))
     .leftJoin(player, eq(player.userId, cityApplication.userId))
-    .where(and(eq(cityApplication.cityId, cityId), eq(cityApplication.status, "pending")))
+    .where(
+      and(
+        eq(cityApplication.cityId, cityId),
+        eq(cityApplication.status, "pending"),
+      ),
+    )
     .orderBy(asc(cityApplication.createdAt));
 
   return rows.map((r) => ({
@@ -193,8 +222,10 @@ export interface MyApplication {
   reviewedAt: Date | null;
 }
 
-/** Заявка игрока в этот город (если подавал). */
-export async function getMyApplication(cityId: number, userId: string): Promise<MyApplication | null> {
+export async function getMyApplication(
+  cityId: number,
+  userId: string,
+): Promise<MyApplication | null> {
   const [row] = await db
     .select({
       status: cityApplication.status,
@@ -202,7 +233,12 @@ export async function getMyApplication(cityId: number, userId: string): Promise<
       reviewedAt: cityApplication.reviewedAt,
     })
     .from(cityApplication)
-    .where(and(eq(cityApplication.cityId, cityId), eq(cityApplication.userId, userId)))
+    .where(
+      and(
+        eq(cityApplication.cityId, cityId),
+        eq(cityApplication.userId, userId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -230,6 +266,15 @@ export async function getCityForUser(userId: string): Promise<UserCity | null> {
     .limit(1);
   if (!row) return null;
 
-  const [{ members }] = await db.select({ members: count() }).from(cityMember).where(eq(cityMember.cityId, row.id));
-  return { id: row.id, name: row.name, role: row.role, members, banner: decodeBanner(row.bannerCode) };
+  const [{ members }] = await db
+    .select({ members: count() })
+    .from(cityMember)
+    .where(eq(cityMember.cityId, row.id));
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    members,
+    banner: decodeBanner(row.bannerCode),
+  };
 }

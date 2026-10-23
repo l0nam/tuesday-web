@@ -46,10 +46,48 @@ const pixel = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Tuesday",
-  description: "Tuesday",
+  metadataBase: new URL("https://tuesday-prime.ru"),
+
+  title: {
+    default: "Tuesday — Minecraft-сервер",
+    template: "%s | Tuesday",
+  },
+
+  description:
+    "Играй на Tuesday — Minecraft-сервере с городами, экономикой и сообществом игроков. Создавай свою историю и развивайся вместе с другими.",
+
+  applicationName: "Tuesday",
+  category: "games",
+
   icons: {
     icon: "/images/logo.webp",
+    shortcut: "/images/logo.webp",
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: "/",
+    siteName: "Tuesday",
+    title: "Tuesday — Minecraft-сервер",
+    description:
+      "Города, экономика и сообщество игроков. Заходи на Tuesday и начинай свою историю.",
+  },
+
+  twitter: {
+    card: "summary",
+    title: "Tuesday — Minecraft-сервер",
+    description:
+      "Города, экономика и сообщество игроков. Начни свою историю на Tuesday.",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
 };
 

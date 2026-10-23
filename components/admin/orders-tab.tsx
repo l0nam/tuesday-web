@@ -116,41 +116,42 @@ export function OrdersTab({ orders, onStatusChange }: OrdersTabProps) {
                         </Pill>
                       )}
 
-                      {!terminal && (() => {
-                        const statusOptions = [
-                          ...new Set([...EDITABLE_STATUSES, row.status]),
-                        ];
+                      {!terminal &&
+                        (() => {
+                          const statusOptions = [
+                            ...new Set([...EDITABLE_STATUSES, row.status]),
+                          ];
 
-                        return (
-                          <Select
-                            value={row.status}
-                            disabled={savingId === row.id || terminal}
-                            onValueChange={(status) => {
-                              if (status == null) return;
-                              void changeStatus(row, status);
-                            }}
-                          >
-                            <SelectTrigger
-                              aria-label={`Статус заказа ${row.id}`}
-                              className="w-full max-w-48"
+                          return (
+                            <Select
+                              value={row.status}
+                              disabled={savingId === row.id || terminal}
+                              onValueChange={(status) => {
+                                if (status == null) return;
+                                void changeStatus(row, status);
+                              }}
                             >
-                              <SelectValue>
-                                {ORDER_LABELS[row.status] ?? row.status}
-                              </SelectValue>
-                            </SelectTrigger>
+                              <SelectTrigger
+                                aria-label={`Статус заказа ${row.id}`}
+                                className="w-full max-w-48"
+                              >
+                                <SelectValue>
+                                  {ORDER_LABELS[row.status] ?? row.status}
+                                </SelectValue>
+                              </SelectTrigger>
 
-                            <SelectContent alignItemWithTrigger>
-                              <SelectGroup>
-                                {statusOptions.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {ORDER_LABELS[status] ?? status}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        );
-                      })()}
+                              <SelectContent alignItemWithTrigger>
+                                <SelectGroup>
+                                  {statusOptions.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {ORDER_LABELS[status] ?? status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          );
+                        })()}
 
                       {savingId === row.id && (
                         <p className="text-xs text-muted-foreground">

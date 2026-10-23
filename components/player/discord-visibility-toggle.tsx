@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,9 +9,7 @@ type Props = {
   initialShowDiscord: boolean;
 };
 
-export function DiscordVisibilityToggle({
-  initialShowDiscord,
-}: Props) {
+export function DiscordVisibilityToggle({ initialShowDiscord }: Props) {
   const router = useRouter();
   const [showDiscord, setShowDiscord] = useState(initialShowDiscord);
   const [pending, setPending] = useState(false);
@@ -54,14 +51,10 @@ export function DiscordVisibilityToggle({
       size="icon"
       variant="outline"
       title={
-        showDiscord
-          ? "Скрыть Discord из профиля"
-          : "Показать Discord в профиле"
+        showDiscord ? "Скрыть Discord из профиля" : "Показать Discord в профиле"
       }
       aria-label={
-        showDiscord
-          ? "Скрыть Discord из профиля"
-          : "Показать Discord в профиле"
+        showDiscord ? "Скрыть Discord из профиля" : "Показать Discord в профиле"
       }
       disabled={pending}
       onClick={toggleVisibility}

@@ -1,12 +1,7 @@
 import type { RowDataPacket } from "mysql2";
 import { createPool, type Pool } from "mysql2/promise";
 import { getEnv, sslOption } from "@/lib/env";
-import { normalizeUuid } from "@/lib/minecraft/uuid";
-
-/**
- * Чтение связанных аккаунтов из БД плагина DiscordSRV (только SELECT).
- * Сайт никогда ничего не пишет в эту базу.
- */
+import { normalizeUuid } from "./utils/formatting";
 
 const g = globalThis as unknown as { __discordsrvPool?: Pool };
 
@@ -33,24 +28,34 @@ export type LinkLookup =
   | { state: "not_linked" }
   | { state: "unavailable"; reason: string };
 
-/** Ищет игровой аккаунт, привязанный к Discord ID через DiscordSRV. */
-export async function lookupLinkedAccount(discordId: string): Promise<LinkLookup> {
+export async function lookupLinkedAccount(
+  discordId: string,
+): Promise<LinkLookup> {
   const pool = getPool();
-  if (!pool) return { state: "unavailable", reason: "DISCORDSRV_DATABASE_URL не задан" };
+  if (!pool)
+    return { state: "unavailable", reason: "DISCORDSRV_DATABASE_URL не задан" };
 
   const env = getEnv();
-  // Имена таблицы и колонок проверены регуляркой в lib/env.ts (только [A-Za-z0-9_])
   const sql = `SELECT \`${env.DISCORDSRV_UUID_COLUMN}\` AS uuid FROM \`${env.DISCORDSRV_TABLE}\` WHERE \`${env.DISCORDSRV_DISCORD_COLUMN}\` = ? LIMIT 1`;
 
   try {
-    const [rows] = await pool.query<RowDataPacket[]>({ sql, values: [discordId], timeout: 5_000 });
+    const [rows] = await pool.query<RowDataPacket[]>({
+      sql,
+      values: [discordId],
+      timeout: 5_000,
+    });
     const raw = rows[0]?.uuid;
     if (raw == null) return { state: "not_linked" };
 
     const mcUuid = normalizeUuid(String(raw));
     if (!mcUuid) {
-      console.error(`[discordsrv] в таблице ${env.DISCORDSRV_TABLE} значение UUID не похоже на UUID: ${String(raw)}`);
-      return { state: "unavailable", reason: "некорректный UUID в таблице DiscordSRV" };
+      console.error(
+        `[discordsrv] в таблице ${env.DISCORDSRV_TABLE} значение UUID не похоже на UUID: ${String(raw)}`,
+      );
+      return {
+        state: "unavailable",
+        reason: "некорректный UUID в таблице DiscordSRV",
+      };
     }
     return { state: "linked", mcUuid };
   } catch (error) {
@@ -64,24 +69,30 @@ export type DiscordLookup =
   | { state: "not_linked" }
   | { state: "unavailable"; reason: string };
 
-/**
- * Обратный поиск: Discord ID, привязанный к игровому аккаунту (для ролей игроков, которые не входили на сайт).
- * UUID в таблице может храниться с дефисами или без, поэтому сравнение идёт по нормализованному значению
- * (таблица связок небольшая, а результат кэшируется на 10 минут).
- */
-export async function lookupDiscordIdByUuid(mcUuid: string): Promise<DiscordLookup> {
+export async function lookupDiscordIdByUuid(
+  mcUuid: string,
+): Promise<DiscordLookup> {
   const pool = getPool();
-  if (!pool) return { state: "unavailable", reason: "DISCORDSRV_DATABASE_URL не задан" };
+  if (!pool)
+    return { state: "unavailable", reason: "DISCORDSRV_DATABASE_URL не задан" };
 
   const env = getEnv();
   const sql = `SELECT \`${env.DISCORDSRV_DISCORD_COLUMN}\` AS discord FROM \`${env.DISCORDSRV_TABLE}\` WHERE LOWER(REPLACE(\`${env.DISCORDSRV_UUID_COLUMN}\`, '-', '')) = ? LIMIT 1`;
 
   try {
-    const [rows] = await pool.query<RowDataPacket[]>({ sql, values: [mcUuid.toLowerCase()], timeout: 5_000 });
+    const [rows] = await pool.query<RowDataPacket[]>({
+      sql,
+      values: [mcUuid.toLowerCase()],
+      timeout: 5_000,
+    });
     const raw = rows[0]?.discord;
     if (raw == null) return { state: "not_linked" };
     const discordId = String(raw);
-    if (!/^\d{1,32}$/.test(discordId)) return { state: "unavailable", reason: "некорректный Discord ID в таблице DiscordSRV" };
+    if (!/^\d{1,32}$/.test(discordId))
+      return {
+        state: "unavailable",
+        reason: "некорректный Discord ID в таблице DiscordSRV",
+      };
     return { state: "linked", discordId };
   } catch (error) {
     console.error("[discordsrv] ошибка запроса к БД DiscordSRV:", error);

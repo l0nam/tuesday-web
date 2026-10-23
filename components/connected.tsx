@@ -16,6 +16,15 @@ export function ConnectedNavbar() {
         balance={account.balance}
         user={account.status === "authed" ? account.user : null}
         player={account.status === "authed" ? account.player : null}
+        city={
+          account.status === "authed" && account.city
+            ? {
+                name: account.city.name,
+                href: `/cities/${account.city.id}`,
+              }
+            : null
+        }
+        canAccessAdmin={account.status === "authed" && account.canAccessAdmin}
         onAuthClick={() =>
           account.status === "authed"
             ? router.push("/profile")

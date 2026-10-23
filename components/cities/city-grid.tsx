@@ -23,10 +23,29 @@ export interface CityCardData {
   ownerMcName: string | null;
 }
 
-export function RecruitingBadge({ recruiting, className }: { recruiting: boolean; className?: string }) {
+export function RecruitingBadge({
+  recruiting,
+  className,
+}: {
+  recruiting: boolean;
+  className?: string;
+}) {
   return (
-    <span className={cn("inline-flex items-center gap-2 text-sm font-medium", recruiting ? "text-primary" : "text-muted-foreground", className)}>
-      <span className={cn("size-2 rounded-full", recruiting ? "bg-primary shadow-[0_0_8px] shadow-primary/70" : "bg-muted-foreground/60")} />
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 text-sm font-medium",
+        recruiting ? "text-primary" : "text-muted-foreground",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "size-2 rounded-full",
+          recruiting
+            ? "bg-primary shadow-[0_0_8px] shadow-primary/70"
+            : "bg-muted-foreground/60",
+        )}
+      />
       {recruiting ? "Идёт набор" : "Набор закрыт"}
     </span>
   );
@@ -42,11 +61,17 @@ function CityCard({ city }: { city: CityCardData }) {
         <div className="flex h-full items-start justify-between gap-4 px-(--card-spacing)">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <PlayerHead nickname={city.ownerMcName} size={24} className="size-6 rounded-sm" />
+              <PlayerHead
+                nickname={city.ownerMcName}
+                size={24}
+                className="size-6 rounded-sm"
+              />
               <span className="truncate">{city.ownerName}</span>
             </span>
 
-            <h2 className="title text-2xl transition-colors group-hover:text-primary">{city.name}</h2>
+            <h2 className="title text-2xl transition-colors group-hover:text-primary">
+              {city.name}
+            </h2>
 
             <p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
               {city.description ?? "Описание пока не добавлено"}
@@ -56,7 +81,8 @@ function CityCard({ city }: { city: CityCardData }) {
               <li className="flex items-center gap-2">
                 <span className="size-1.5 bg-foreground/60" />
                 <span className="tabular-nums">
-                  {city.members} {pluralRu(city.members, "житель", "жителя", "жителей")}
+                  {city.members}{" "}
+                  {pluralRu(city.members, "житель", "жителя", "жителей")}
                 </span>
               </li>
               {city.hasDiscord && (
@@ -71,7 +97,11 @@ function CityCard({ city }: { city: CityCardData }) {
             </ul>
           </div>
 
-          <BannerView banner={city.banner} className="w-20 transition group-hover:-translate-y-0.5" label={`Флаг города ${city.name}`} />
+          <BannerView
+            banner={city.banner}
+            className="w-20 transition group-hover:-translate-y-0.5"
+            label={`Флаг города ${city.name}`}
+          />
         </div>
       </Card>
     </Link>
@@ -84,7 +114,11 @@ export function CityGrid({ cities }: { cities: CityCardData[] }) {
   const visible = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("ru-RU");
     if (!q) return cities;
-    return cities.filter((c) => [c.name, c.ownerName, c.description ?? ""].some((s) => s.toLocaleLowerCase("ru-RU").includes(q)));
+    return cities.filter((c) =>
+      [c.name, c.ownerName, c.description ?? ""].some((s) =>
+        s.toLocaleLowerCase("ru-RU").includes(q),
+      ),
+    );
   }, [cities, query]);
 
   return (
@@ -103,7 +137,9 @@ export function CityGrid({ cities }: { cities: CityCardData[] }) {
 
       {visible.length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">
-          {cities.length === 0 ? "Городов пока нет. Станьте первым: создайте свой." : "Ничего не найдено."}
+          {cities.length === 0
+            ? "Городов пока нет. Станьте первым: создайте свой."
+            : "Ничего не найдено."}
         </p>
       ) : (
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

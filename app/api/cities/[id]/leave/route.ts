@@ -1,8 +1,15 @@
-import { badId, handleCityRequest, jsonResponse, parseId } from "@/lib/cities/api";
+import {
+  badId,
+  handleCityRequest,
+  jsonResponse,
+  parseId,
+} from "@/lib/cities/api";
 import { leaveCity } from "@/lib/cities/service";
 
-/** Покинуть город. Владелец уйти не может. */
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const cityId = parseId((await params).id);
   if (!cityId) return badId();
 

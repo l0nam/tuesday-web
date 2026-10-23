@@ -4,15 +4,23 @@ import { db, withTransaction } from "@/lib/db";
 import { playtimeProgress, player } from "@/lib/db/schema";
 import { rememberName } from "@/lib/minecraft/mojang";
 import { DONATE_TIERS } from "@/lib/profile/config";
-import { recordPlaytime, recordPresence, setCityMembership, setDonate } from "@/lib/profile/record";
-import { ACHIEVEMENT_DIFFICULTIES, ACTIVITY_CODES, REWARDS } from "@/lib/economy/rewards/config";
-import { MC_NAME_RE, normalizeUuid } from "@/lib/minecraft/uuid";
-import { claimIfLinked, grantRewardTx, type GrantResult } from "@/lib/economy/wallet";
-
-/**
- * События от плагина. Плагин сообщает ЧТО произошло, а сколько за это платить решает сайт
- * (lib/rewards/config.ts), поэтому размеры наград меняются без обновления плагина.
- */
+import {
+  recordPlaytime,
+  recordPresence,
+  setCityMembership,
+  setDonate,
+} from "@/lib/profile/record";
+import {
+  ACHIEVEMENT_DIFFICULTIES,
+  ACTIVITY_CODES,
+  REWARDS,
+} from "@/lib/economy/rewards/config";
+import {
+  claimIfLinked,
+  grantRewardTx,
+  type GrantResult,
+} from "@/lib/economy/wallet";
+import { MC_NAME_RE, normalizeUuid } from "../utils/formatting";
 
 const uuidField = z.string().transform((value, ctx) => {
   const normalized = normalizeUuid(value);
@@ -50,7 +58,6 @@ const playtimeEvent = z.object({
   type: z.literal("playtime"),
   uuid: uuidField,
   name: nameField,
-  /** Общее наигранное время игрока в секундах (накопительный итог, не прирост) */
   totalSeconds: z
     .number()
     .int()
@@ -62,9 +69,7 @@ const activityEvent = z.object({
   type: z.literal("activity"),
   uuid: uuidField,
   name: nameField,
-  /** Код активности из REWARDS.activity либо "custom" (тогда нужен amount) */
   activity: z.string().regex(/^[a-z0-9_]{1,32}$/),
-  /** Уникальный id активности (например id ивента): один игрок получает награду за него один раз */
   eventId: keyField,
   amount: z.number().int().min(1).max(REWARDS.customActivityMax).optional(),
 });
@@ -73,7 +78,6 @@ const presenceEvent = z.object({
   type: z.literal("presence"),
   uuid: uuidField,
   name: nameField,
-  /** true: игрок на сервере (вход и сердцебиение каждые ~5 минут), false: вышел */
   online: z.boolean(),
 });
 
@@ -81,12 +85,10 @@ const cityMembershipEvent = z.object({
   type: z.literal("city_membership"),
   uuid: uuidField,
   name: nameField,
-  /** Город, в котором состоит игрок. null: игрок вышел из города / город распущен */
   city: z
     .object({
       id: keyField,
       name: z.string().min(1).max(120),
-      /** Роль в городе как её называет плагин (owner, member...). Показывается как есть. */
       role: z.string().min(1).max(32).optional(),
       members: z.number().int().min(0).max(100_000).optional(),
     })
@@ -97,9 +99,10 @@ const donateEvent = z.object({
   type: z.literal("donate"),
   uuid: uuidField,
   name: nameField,
-  /** Код подписки из DONATE_TIERS (lib/profile/config.ts). null: подписки нет */
-  tier: z.string().regex(/^[a-z0-9_]{1,32}$/).nullable(),
-  /** Когда подписка заканчивается (ISO 8601). Не указан или null: бессрочно */
+  tier: z
+    .string()
+    .regex(/^[a-z0-9_]{1,32}$/)
+    .nullable(),
   expiresAt: z.iso
     .datetime({ offset: true })
     .nullish()
@@ -118,7 +121,6 @@ export const pluginEventSchema = z.discriminatedUnion("type", [
 export type PluginEvent = z.infer<typeof pluginEventSchema>;
 
 export const batchSchema = z.object({
-  // Элементы валидируются по одному, чтобы одно битое событие не отклоняло всю пачку
   events: z.array(z.unknown()).min(1).max(50),
 });
 
@@ -147,7 +149,9 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
       await db
         .update(player)
         .set({ mcName: event.name })
-        .where(and(eq(player.mcUuid, event.uuid), ne(player.mcName, event.name)));
+        .where(
+          and(eq(player.mcUuid, event.uuid), ne(player.mcName, event.name)),
+        );
     } catch (error) {
       console.error("[plugin] не удалось сохранить ник:", error);
     }
@@ -163,7 +167,10 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
           type: "achievement",
           ref: `achievement:${event.achievementId}`,
           idempotencyKey: `ach:${event.uuid}:${event.achievementId}`,
-          meta: { achievementId: event.achievementId, difficulty: event.difficulty },
+          meta: {
+            achievementId: event.achievementId,
+            difficulty: event.difficulty,
+          },
         }),
       );
       if (result.status === "pending") await claimIfLinked(event.uuid);
@@ -172,9 +179,11 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
 
     case "city": {
       if (event.members < REWARDS.city.minMembers) {
-        return { status: "ignored", reason: `в городе меньше ${REWARDS.city.minMembers} человек` };
+        return {
+          status: "ignored",
+          reason: `в городе меньше ${REWARDS.city.minMembers} человек`,
+        };
       }
-      // Ключ зависит только от игрока: бонус один раз на все города
       const result = await withTransaction((tx) =>
         grantRewardTx(tx, {
           mcUuid: event.uuid,
@@ -211,46 +220,63 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     }
 
     case "playtime": {
-      // Статистика профиля не должна мешать начислению: при сбое лог, а общее время поправит следующий отчёт
       try {
         await recordPlaytime(event.uuid, event.totalSeconds);
       } catch (error) {
         console.error("[plugin] не удалось записать игровое время:", error);
       }
 
-      const { secondsPerUnit, amountPerUnit, grantExistingTime, maxUnitsPerEvent } = REWARDS.playtime;
+      const {
+        secondsPerUnit,
+        amountPerUnit,
+        grantExistingTime,
+        maxUnitsPerEvent,
+      } = REWARDS.playtime;
       const totalUnits = Math.floor(event.totalSeconds / secondsPerUnit);
 
-      const outcome = await withTransaction(async (tx): Promise<EventResult> => {
-        // Первое событие игрока создаёт отправную точку; блокировка строки сериализует параллельные события
-        // Не INSERT IGNORE: при дубликате он берёт общую блокировку, и следующий FOR UPDATE
-        // у параллельных событий одного игрока заканчивается deadlock. Здесь сразу эксклюзивная.
-        await tx
-          .insert(playtimeProgress)
-          .values({ mcUuid: event.uuid, creditedUnits: grantExistingTime ? 0 : totalUnits })
-          .onDuplicateKeyUpdate({ set: { mcUuid: sql`${playtimeProgress.mcUuid}` } });
-        const [progress] = await tx
-          .select({ creditedUnits: playtimeProgress.creditedUnits })
-          .from(playtimeProgress)
-          .where(eq(playtimeProgress.mcUuid, event.uuid))
-          .for("update");
+      const outcome = await withTransaction(
+        async (tx): Promise<EventResult> => {
+          await tx
+            .insert(playtimeProgress)
+            .values({
+              mcUuid: event.uuid,
+              creditedUnits: grantExistingTime ? 0 : totalUnits,
+            })
+            .onDuplicateKeyUpdate({
+              set: { mcUuid: sql`${playtimeProgress.mcUuid}` },
+            });
+          const [progress] = await tx
+            .select({ creditedUnits: playtimeProgress.creditedUnits })
+            .from(playtimeProgress)
+            .where(eq(playtimeProgress.mcUuid, event.uuid))
+            .for("update");
 
-        const newUnits = Math.min(totalUnits - progress.creditedUnits, maxUnitsPerEvent);
-        if (newUnits <= 0) return { status: "ignored", reason: "нет нового оплачиваемого времени" };
+          const newUnits = Math.min(
+            totalUnits - progress.creditedUnits,
+            maxUnitsPerEvent,
+          );
+          if (newUnits <= 0)
+            return {
+              status: "ignored",
+              reason: "нет нового оплачиваемого времени",
+            };
 
-        const creditedUnits = progress.creditedUnits + newUnits;
-        const grant = await grantRewardTx(tx, {
-          mcUuid: event.uuid,
-          amount: newUnits * amountPerUnit,
-          type: "playtime",
-          ref: `playtime:${creditedUnits}`,
-          // Ключ привязан к итоговому счётчику, поэтому одно и то же значение не оплатится дважды
-          idempotencyKey: `playtime:${event.uuid}:${creditedUnits}`,
-          meta: { units: newUnits, totalUnits: creditedUnits },
-        });
-        await tx.update(playtimeProgress).set({ creditedUnits }).where(eq(playtimeProgress.mcUuid, event.uuid));
-        return fromGrant(grant);
-      });
+          const creditedUnits = progress.creditedUnits + newUnits;
+          const grant = await grantRewardTx(tx, {
+            mcUuid: event.uuid,
+            amount: newUnits * amountPerUnit,
+            type: "playtime",
+            ref: `playtime:${creditedUnits}`,
+            idempotencyKey: `playtime:${event.uuid}:${creditedUnits}`,
+            meta: { units: newUnits, totalUnits: creditedUnits },
+          });
+          await tx
+            .update(playtimeProgress)
+            .set({ creditedUnits })
+            .where(eq(playtimeProgress.mcUuid, event.uuid));
+          return fromGrant(grant);
+        },
+      );
 
       if (outcome.status === "pending") await claimIfLinked(event.uuid);
       return outcome;
@@ -259,7 +285,11 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     case "activity": {
       let amount: number;
       if (event.activity === "custom") {
-        if (!event.amount) return { status: "invalid", reason: 'для активности "custom" нужно поле amount' };
+        if (!event.amount)
+          return {
+            status: "invalid",
+            reason: 'для активности "custom" нужно поле amount',
+          };
         amount = event.amount;
       } else {
         const configured = REWARDS.activity[event.activity];
@@ -287,7 +317,6 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
   }
 }
 
-/** Обрабатывает пачку событий по очереди; ошибка одного не мешает остальным. */
 export async function processBatch(items: unknown[]): Promise<EventResult[]> {
   const results: EventResult[] = [];
   for (const item of items) {
@@ -295,7 +324,10 @@ export async function processBatch(items: unknown[]): Promise<EventResult[]> {
       results.push(await processEvent(item));
     } catch (error) {
       console.error("[plugin] ошибка обработки события:", error);
-      results.push({ status: "invalid", reason: "внутренняя ошибка, повторите отправку" });
+      results.push({
+        status: "invalid",
+        reason: "внутренняя ошибка, повторите отправку",
+      });
     }
   }
   return results;

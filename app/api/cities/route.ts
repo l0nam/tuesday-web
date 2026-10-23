@@ -10,7 +10,6 @@ const bodySchema = z.object({
   recruiting: z.boolean().optional(),
 });
 
-/** Создать город. Название и флаг после создания изменить нельзя. */
 export async function POST(req: Request) {
   return handleCityRequest(req, async (userId) => {
     const body = await readBody(req, bodySchema);

@@ -2,11 +2,6 @@ import { errorResponse, jsonResponse } from "@/lib/utils/http";
 import { verifyPluginRequest } from "@/lib/plugin/plugin-auth";
 import { claimOrders } from "@/lib/economy/shop";
 
-/**
- * Плагин опрашивает этот адрес, чтобы забрать заказы магазина на выдачу.
- * Забранные заказы получают статус "processing", после выдачи плагин подтверждает их
- * запросом POST /api/plugin/orders/{id}. Формат: docs/plugin-api.md
- */
 export async function GET(req: Request) {
   const auth = await verifyPluginRequest(req);
   if (!auth.ok) return auth.response;

@@ -23,6 +23,7 @@ import {
   BookIcon,
   BuildingsIcon,
   ShoppingBagIcon,
+  ShieldCheckIcon,
   TrendUpIcon,
   UserIcon,
   WalletIcon,
@@ -40,7 +41,6 @@ import { DoorIcon } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/auth-client";
 import { formatNumber } from "@/lib/utils/formatting";
 import { LINKS } from "@/lib/data";
-import { label } from "motion/react-client";
 
 const NAV_LINKS = [
   { icon: BookIcon, label: "Вики", href: LINKS["wiki"].link },
@@ -102,7 +102,7 @@ function DesktopLinks({ pathname }: { pathname: string }) {
                 onFocus={() => setHovered(href)}
                 onBlur={() => setHovered(null)}
                 className={cn(
-                  "relative flex h-11 px-3 items-center justify-center rounded-lg text-sm font-medium outline-none transition-colors duration-200",
+                  "relative flex h-11 px-3 items-center justify-center text-sm font-medium outline-none transition-colors duration-200",
                   selected === href
                     ? "text-foreground"
                     : "text-muted-foreground",
@@ -125,7 +125,7 @@ function DesktopLinks({ pathname }: { pathname: string }) {
                 onFocus={() => setHovered(href)}
                 onBlur={() => setHovered(null)}
                 className={cn(
-                  "relative flex h-11 px-3 items-center justify-center rounded-lg text-sm font-medium outline-none transition-colors duration-200",
+                  "relative flex h-11 px-3 items-center justify-center text-sm font-medium outline-none transition-colors duration-200",
                   selected === href
                     ? "text-foreground"
                     : "text-muted-foreground",
@@ -157,6 +157,8 @@ function MobileMenu({
   user,
   player,
   balance,
+  city,
+  canAccessAdmin,
 }: {
   pathname: string;
   onClose: () => void;
@@ -164,6 +166,8 @@ function MobileMenu({
   user?: NavbarUser | null;
   player?: NavbarPlayer | null;
   balance: number | null;
+  city?: NavbarCity | null;
+  canAccessAdmin?: boolean;
 }) {
   return (
     <motion.div
@@ -173,7 +177,7 @@ function MobileMenu({
       exit={{ opacity: 0, y: -12, scale: 0.97 }}
       transition={{ duration: 0.25, ease: EASE }}
       style={{ originY: 0 }}
-      className="pointer-events-auto absolute inset-x-0 top-full mt-2 overflow-hidden rounded-2xl bg-background/90 p-2 ring-1 ring-inset ring-foreground/10 backdrop-blur-xl md:hidden"
+      className="pointer-events-auto absolute inset-x-0 top-full mt-2 overflow-hidden rounded-lg bg-background/90 p-2 ring-1 ring-inset ring-foreground/10 backdrop-blur-xl md:hidden"
     >
       <ul className="flex flex-col">
         {NAV_LINKS.map(({ icon: Icon, label, href }, i) => {
@@ -207,11 +211,18 @@ function MobileMenu({
 
       <div className="mt-2 flex flex-col gap-2 border-t p-2 pt-3">
         {user ? (
-          <NavbarAccount user={user} player={player} mobile balance={balance} />
+          <NavbarAccount
+            user={user}
+            player={player}
+            balance={balance}
+            mobile
+            city={city}
+            canAccessAdmin={canAccessAdmin}
+          />
         ) : (
           <Button
             size="lg"
-            className="w-full rounded-lg"
+            className="w-full"
             onClick={() => {
               onClose();
               onAuthClick?.();
@@ -236,11 +247,18 @@ type NavbarPlayer = {
   mcName: string | null;
 };
 
+type NavbarCity = {
+  name: string;
+  href: string;
+};
+
 type NavbarProps = {
   onAuthClick?: () => void;
   user?: NavbarUser | null;
   player?: NavbarPlayer | null;
   balance?: number | null;
+  city?: NavbarCity | null;
+  canAccessAdmin?: boolean;
 };
 
 function NavbarAccount({
@@ -249,12 +267,16 @@ function NavbarAccount({
   mobile = false,
   balance,
   onClose,
+  city,
+  canAccessAdmin = false,
 }: {
   user: NavbarUser;
   player?: NavbarPlayer | null;
   mobile?: boolean;
   balance: number | null;
   onClose?: () => void;
+  city?: NavbarCity | null;
+  canAccessAdmin?: boolean;
 }) {
   const mcName = player?.mcName;
   const displayName = mcName || user.name;
@@ -273,40 +295,26 @@ function NavbarAccount({
     },
   ] as const;
 
-  const accountLinks = links.map(({ label, href, icon: Icon, ...item }) => (
-    <Link
-      key={label}
-      href={href}
-      aria-label={label}
-      onClick={onClose}
-      className={cn(
-        buttonVariants({
-          variant: "ghost",
-        }),
-        "w-full justify-start",
-      )}
-    >
-      <Icon weight="bold" />
-      {label}
-
-      {"value" in item && (
-        <span className="ml-auto tabular-nums px-3 py-0.5 place-items-center rounded bg-primary">
-          {formatNumber(Number(item.value), true) ?? "—"}
-        </span>
-      )}
-    </Link>
-  ));
-
-  const SignOutButton = ({ className }: { className?: string }) => (
-    <Button
-      variant="destructive"
-      onClick={() => void handleSignOut()}
-      className={cn("justify-start w-full", className)}
-    >
-      <DoorIcon weight="bold" />
-      Выйти
-    </Button>
-  );
+  const extraLinks = [
+    ...(city
+      ? [
+          {
+            label: city.name,
+            href: city.href,
+            icon: BuildingsIcon,
+          },
+        ]
+      : []),
+    ...(canAccessAdmin
+      ? [
+          {
+            label: "Админ-панель",
+            href: "/admin",
+            icon: ShieldCheckIcon,
+          },
+        ]
+      : []),
+  ];
 
   const handleSignOut = async () => {
     try {
@@ -315,6 +323,17 @@ function NavbarAccount({
       window.location.href = "/";
     }
   };
+
+  const SignOutButton = ({ className }: { className?: string }) => (
+    <Button
+      variant="destructive"
+      onClick={() => void handleSignOut()}
+      className={cn("w-full justify-start", className)}
+    >
+      <DoorIcon weight="bold" />
+      Выйти
+    </Button>
+  );
 
   if (mobile) {
     return (
@@ -334,9 +353,49 @@ function NavbarAccount({
           )}
         </div>
 
-        {accountLinks}
+        {links.map(({ label, href, icon: Icon, ...item }) => (
+          <Link
+            key={label}
+            href={href}
+            onClick={onClose}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-full justify-start",
+            )}
+          >
+            <Icon weight="bold" />
+            {label}
 
-        <div className="w-full h-px bg-border my-1" />
+            {"value" in item && (
+              <span className="ml-auto rounded bg-primary px-3 py-0.5 tabular-nums">
+                {formatNumber(Number(item.value), true) ?? "—"}
+              </span>
+            )}
+          </Link>
+        ))}
+
+        {extraLinks.length > 0 && (
+          <>
+            <div className="my-1 h-px w-full bg-border" />
+
+            {extraLinks.map(({ label, href, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "w-full justify-start",
+                )}
+              >
+                <Icon weight="bold" />
+                {label}
+              </Link>
+            ))}
+          </>
+        )}
+
+        <div className="my-1 h-px w-full bg-border" />
 
         <SignOutButton className="mt-1" />
       </div>
@@ -346,14 +405,10 @@ function NavbarAccount({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="hidden items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/5 md:inline-flex"
+        className="hidden items-center gap-2 pr-2 md:inline-flex"
         aria-label={`Меню аккаунта: ${displayName}`}
       >
-        <PlayerHead nickname={mcName} className="size-8 rounded-md" />
-
-        <span className="max-w-32 truncate text-sm font-medium">
-          {displayName}
-        </span>
+        <PlayerHead nickname={mcName} className="size-9 rounded-md" />
 
         {player && !mcName && (
           <span
@@ -363,12 +418,48 @@ function NavbarAccount({
         )}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-52">
-        {accountLinks.map((link) => (
-          <DropdownMenuItem key={link.key} className="p-0">
-            {link}
+      <DropdownMenuContent align="end" className="w-56">
+        {links.map(({ label, href, icon: Icon, ...item }) => (
+          <DropdownMenuItem key={label} className="p-0">
+            <Link
+              href={href}
+              className={cn(
+                "flex w-full justify-start! gap-2",
+                buttonVariants({ variant: "ghost" }),
+              )}
+            >
+              <Icon weight="bold" />
+              {label}
+
+              {"value" in item && (
+                <span className="ml-auto rounded bg-primary px-2 py-0.5 tabular-nums">
+                  {formatNumber(Number(item.value), true) ?? "—"}
+                </span>
+              )}
+            </Link>
           </DropdownMenuItem>
         ))}
+
+        {extraLinks.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+
+            {extraLinks.map(({ label, href, icon: Icon }) => (
+              <DropdownMenuItem key={href} className="p-0">
+                <Link
+                  href={href}
+                  className={cn(
+                    "flex w-full justify-start! gap-2",
+                    buttonVariants({ variant: "ghost" }),
+                  )}
+                >
+                  <Icon weight="bold" />
+                  {label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
 
         <DropdownMenuSeparator />
 
@@ -383,6 +474,8 @@ export function Navbar({
   user = null,
   player = null,
   balance = null,
+  city = null,
+  canAccessAdmin = false,
 }: NavbarProps) {
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
@@ -480,7 +573,7 @@ export function Navbar({
             <nav
               aria-label="Основная навигация"
               className={cn(
-                "pointer-events-auto relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl pl-5 pr-2 ring-1 ring-inset",
+                "pointer-events-auto relative flex items-center justify-between gap-3 overflow-hidden rounded-lg pl-5 pr-2 ring-1 ring-inset",
                 animateStyle &&
                   "transition-[background-color,height,ring,padding] duration-500",
                 scrolled
@@ -498,10 +591,12 @@ export function Navbar({
                     user={user}
                     player={player}
                     balance={balance}
+                    city={city}
+                    canAccessAdmin={canAccessAdmin}
                   />
                 ) : (
                   <Button
-                    className="hidden rounded-lg px-4 md:inline-flex"
+                    className="hidden px-4 md:inline-flex"
                     onClick={onAuthClick}
                   >
                     Авторизоваться
@@ -549,6 +644,8 @@ export function Navbar({
                   user={user}
                   player={player}
                   balance={balance}
+                  city={city}
+                  canAccessAdmin={canAccessAdmin}
                 />
               )}
             </AnimatePresence>

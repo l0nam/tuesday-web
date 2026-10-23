@@ -17,11 +17,19 @@ export type ViewerState =
   | {
       kind: "applicant";
       recruiting: boolean;
-      /** pending: ждёт решения; rejected: отказ с причиной; null: заявок не было */
-      application: { status: "pending" | "rejected" | "other"; rejectReason: string | null } | null;
+      application: {
+        status: "pending" | "rejected" | "other";
+        rejectReason: string | null;
+      } | null;
     };
 
-export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerState }) {
+export function JoinPanel({
+  cityId,
+  viewer,
+}: {
+  cityId: number;
+  viewer: ViewerState;
+}) {
   const { busy, error, call, refresh } = useCityApi();
   const [message, setMessage] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -46,26 +54,46 @@ export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerSt
     case "guest":
       return (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Войдите через Discord, чтобы подать заявку в город.</p>
+          <p className="text-sm text-muted-foreground">
+            Войдите через Discord, чтобы подать заявку в город.
+          </p>
           <SignInButton callbackURL={`/cities/${cityId}`} />
         </div>
       );
 
     case "owner":
-      return <p className="text-sm text-muted-foreground">Вы владелец этого города. Заявки и настройки находятся на этой странице.</p>;
+      return (
+        <p className="text-sm text-muted-foreground">
+          Вы владелец этого города. Заявки и настройки находятся на этой
+          странице.
+        </p>
+      );
 
     case "member":
       return (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Вы живёте в этом городе.</p>
+          <p className="text-sm text-muted-foreground">
+            Вы живёте в этом городе.
+          </p>
           {confirmLeave ? (
             <div className="space-y-2">
-              <p className="text-sm">Точно покинуть город? Вернуться можно будет только по новой заявке.</p>
+              <p className="text-sm">
+                Точно покинуть город? Вернуться можно будет только по новой
+                заявке.
+              </p>
               <div className="flex gap-2">
-                <Button variant="destructive" onClick={() => void leave()} disabled={busy}>
+                <Button
+                  variant="destructive"
+                  onClick={() => void leave()}
+                  disabled={busy}
+                >
                   {busy ? <Spinner /> : "Да, покинуть"}
                 </Button>
-                <Button variant="secondary" onClick={() => setConfirmLeave(false)} disabled={busy}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setConfirmLeave(false)}
+                  disabled={busy}
+                >
                   Отмена
                 </Button>
               </div>
@@ -97,9 +125,14 @@ export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerSt
         return (
           <div className="space-y-3">
             <p className="text-sm">
-              <b>Заявка отправлена.</b> Владелец или совладельцы города скоро её рассмотрят.
+              <b>Заявка отправлена.</b> Владелец или совладельцы города скоро её
+              рассмотрят.
             </p>
-            <Button variant="secondary" onClick={() => void cancel()} disabled={busy}>
+            <Button
+              variant="secondary"
+              onClick={() => void cancel()}
+              disabled={busy}
+            >
               {busy ? <Spinner /> : "Отозвать заявку"}
             </Button>
             <ErrorNote message={error} />
@@ -111,9 +144,14 @@ export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerSt
         <div className="space-y-3">
           {application?.status === "rejected" && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-              <p className="font-medium text-destructive">Ваша заявка отклонена</p>
+              <p className="font-medium text-destructive">
+                Ваша заявка отклонена
+              </p>
               <p className="mt-1 text-foreground/90">
-                Причина: <span className="whitespace-pre-line">{application.rejectReason ?? "не указана"}</span>
+                Причина:{" "}
+                <span className="whitespace-pre-line">
+                  {application.rejectReason ?? "не указана"}
+                </span>
               </p>
             </div>
           )}
@@ -128,7 +166,11 @@ export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerSt
                 aria-label="Сообщение владельцу"
                 placeholder="Пара слов о себе (необязательно)"
               />
-              <Button onClick={() => void apply()} disabled={busy} className="w-full">
+              <Button
+                onClick={() => void apply()}
+                disabled={busy}
+                className="w-full"
+              >
                 {busy ? (
                   <>
                     <Spinner /> Отправляю…
@@ -141,7 +183,9 @@ export function JoinPanel({ cityId, viewer }: { cityId: number; viewer: ViewerSt
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">Набор в этот город сейчас закрыт.</p>
+            <p className="text-sm text-muted-foreground">
+              Набор в этот город сейчас закрыт.
+            </p>
           )}
           <ErrorNote message={error} />
         </div>

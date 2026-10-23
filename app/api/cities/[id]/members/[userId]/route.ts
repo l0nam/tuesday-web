@@ -1,11 +1,19 @@
 import { z } from "zod";
-import { badId, handleCityRequest, jsonResponse, parseId, readBody } from "@/lib/cities/api";
+import {
+  badId,
+  handleCityRequest,
+  jsonResponse,
+  parseId,
+  readBody,
+} from "@/lib/cities/api";
 import { removeMember, setMemberRole } from "@/lib/cities/service";
 
 const bodySchema = z.object({ role: z.enum(["coowner", "member"]) });
 
-/** Назначить совладельцем или снять с этой роли (только владелец). */
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string; userId: string }> }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string; userId: string }> },
+) {
   const { id, userId: targetUserId } = await params;
   const cityId = parseId(id);
   if (!cityId || !targetUserId || targetUserId.length > 36) return badId();
@@ -18,8 +26,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   });
 }
 
-/** Исключить жителя из города. */
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string; userId: string }> }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string; userId: string }> },
+) {
   const { id, userId: targetUserId } = await params;
   const cityId = parseId(id);
   if (!cityId || !targetUserId || targetUserId.length > 36) return badId();

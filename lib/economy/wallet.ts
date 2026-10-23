@@ -7,16 +7,6 @@ import {
   type LedgerType,
 } from "@/lib/db/schema";
 
-/**
- * Единственное место, где меняется баланс.
- *
- * Гарантии:
- *  - Любое изменение баланса идёт в одной транзакции с записью в ledger.
- *  - Строка игрока блокируется (SELECT ... FOR UPDATE), поэтому параллельные покупки и начисления
- *    выполняются по очереди и баланс не уходит в минус.
- *  - Операции идемпотентны: повторный ключ (idempotencyKey) не меняет баланс второй раз.
- */
-
 const MAX_BALANCE = 2_000_000_000;
 
 export class InsufficientFundsError extends Error {
@@ -31,7 +21,6 @@ export class InsufficientFundsError extends Error {
 
 export interface MoneyOp {
   userId: string;
-  /** Положительное целое */
   amount: number;
   type: LedgerType;
   ref?: string;
@@ -45,13 +34,11 @@ function assertPositiveInt(amount: number) {
   }
 }
 
-/** Количество затронутых строк из результата INSERT/UPDATE/DELETE (mysql2). */
 export function affectedRows(result: unknown): number {
   const header = Array.isArray(result) ? result[0] : result;
   return (header as { affectedRows?: number } | undefined)?.affectedRows ?? 0;
 }
 
-/** AUTO_INCREMENT id вставленной строки из результата INSERT (mysql2). */
 export function insertId(result: unknown): number {
   const header = Array.isArray(result) ? result[0] : result;
   return Number(
@@ -69,7 +56,6 @@ async function lockPlayer(tx: Tx, userId: string) {
   return row;
 }
 
-/** Начисление. applied=false, если операция с таким ключом уже была выполнена. */
 export async function credit(
   tx: Tx,
   op: MoneyOp,
@@ -100,7 +86,6 @@ export async function credit(
   return { applied: true, balance };
 }
 
-/** Списание. Бросает InsufficientFundsError, если денег не хватает (транзакция откатывается). */
 export async function debit(tx: Tx, op: MoneyOp): Promise<{ balance: number }> {
   assertPositiveInt(op.amount);
   const locked = await lockPlayer(tx, op.userId);
@@ -121,10 +106,6 @@ export async function debit(tx: Tx, op: MoneyOp): Promise<{ balance: number }> {
   return { balance };
 }
 
-/* ------------------------------------------------------------------ */
-/* Награды по UUID игрока (плагин знает только UUID, а не аккаунт сайта) */
-/* ------------------------------------------------------------------ */
-
 export interface RewardGrant {
   mcUuid: string;
   amount: number;
@@ -139,13 +120,6 @@ export type GrantResult =
   | { status: "pending"; amount: number }
   | { status: "duplicate" };
 
-/**
- * Начисляет награду игроку с указанным UUID внутри уже открытой транзакции:
- *  - аккаунт привязан к сайту -> сразу на баланс;
- *  - не привязан -> откладывается в pending_reward и зачислится после привязки.
- *
- * Если результат "pending", после коммита вызовите claimIfLinked(mcUuid).
- */
 export async function grantRewardTx(
   tx: Tx,
   g: RewardGrant,
@@ -188,10 +162,6 @@ export async function grantRewardTx(
     : { status: "duplicate" };
 }
 
-/**
- * Игрок мог привязать аккаунт между проверкой и записью отложенной награды.
- * Подбираем такую награду сразу, а не ждём следующей синхронизации.
- */
 export async function claimIfLinked(mcUuid: string): Promise<void> {
   const [owner] = await db
     .select({ userId: player.userId })
@@ -201,14 +171,12 @@ export async function claimIfLinked(mcUuid: string): Promise<void> {
   if (owner) await claimPendingRewards(owner.userId, mcUuid);
 }
 
-/** Одиночное начисление в собственной транзакции. */
 export async function grantReward(g: RewardGrant): Promise<GrantResult> {
   const result = await withTransaction((tx) => grantRewardTx(tx, g));
   if (result.status === "pending") await claimIfLinked(g.mcUuid);
   return result;
 }
 
-/** Переносит отложенные награды UUID на баланс аккаунта. Безопасно вызывать повторно. */
 export async function claimPendingRewards(
   userId: string,
   mcUuid: string,

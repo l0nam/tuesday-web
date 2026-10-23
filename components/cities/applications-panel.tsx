@@ -15,24 +15,42 @@ export interface ApplicationItem {
   name: string;
   mcName: string | null;
   message: string | null;
-  /** Уже отформатированное "5 минут назад" */
   ago: string;
 }
 
-function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: ApplicationItem; onNotice: (text: string) => void }) {
+function ApplicationRow({
+  cityId,
+  item,
+  onNotice,
+}: {
+  cityId: number;
+  item: ApplicationItem;
+  onNotice: (text: string) => void;
+}) {
   const { busy, error, call, refresh } = useCityApi();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
 
   async function accept() {
-    const res = await call<{ rewardGranted?: boolean }>(`/api/cities/${cityId}/applications/${item.id}`, "POST", { action: "accept" });
+    const res = await call<{ rewardGranted?: boolean }>(
+      `/api/cities/${cityId}/applications/${item.id}`,
+      "POST",
+      { action: "accept" },
+    );
     if (!res) return;
-    if (res.rewardGranted) onNotice(`В городе набралось ${CITY.rewardMinMembers} жителей: владелец получил ${CITY.rewardAmount} Вторничков.`);
+    if (res.rewardGranted)
+      onNotice(
+        `В городе набралось ${CITY.rewardMinMembers} жителей: владелец получил ${CITY.rewardAmount} Вторничков.`,
+      );
     refresh();
   }
 
   async function reject() {
-    const res = await call(`/api/cities/${cityId}/applications/${item.id}`, "POST", { action: "reject", reason });
+    const res = await call(
+      `/api/cities/${cityId}/applications/${item.id}`,
+      "POST",
+      { action: "reject", reason },
+    );
     if (res) refresh();
   }
 
@@ -41,11 +59,18 @@ function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: Appl
   return (
     <li className="space-y-3 rounded-lg bg-muted/40 p-3">
       <div className="flex items-start gap-3">
-        <PlayerHead nickname={item.mcName} size={40} className="size-10 rounded-md" />
+        <PlayerHead
+          nickname={item.mcName}
+          size={40}
+          className="size-10 rounded-md"
+        />
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-baseline gap-x-2">
             {item.mcName ? (
-              <Link href={`/players/${encodeURIComponent(item.mcName)}`} className="font-medium hover:text-primary">
+              <Link
+                href={`/players/${encodeURIComponent(item.mcName)}`}
+                className="font-medium hover:text-primary"
+              >
                 {item.name}
               </Link>
             ) : (
@@ -54,9 +79,13 @@ function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: Appl
             <span className="text-xs text-muted-foreground">{item.ago}</span>
           </p>
           {item.message ? (
-            <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{item.message}</p>
+            <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">
+              {item.message}
+            </p>
           ) : (
-            <p className="mt-1 text-sm text-muted-foreground/70">Без сообщения</p>
+            <p className="mt-1 text-sm text-muted-foreground/70">
+              Без сообщения
+            </p>
           )}
         </div>
       </div>
@@ -73,10 +102,18 @@ function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: Appl
             placeholder="Причина отказа (её увидит игрок)"
           />
           <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" onClick={() => void reject()} disabled={busy || reasonLength < CITY.reasonMin}>
+            <Button
+              variant="destructive"
+              onClick={() => void reject()}
+              disabled={busy || reasonLength < CITY.reasonMin}
+            >
               {busy ? <Spinner /> : "Отклонить"}
             </Button>
-            <Button variant="secondary" onClick={() => setRejecting(false)} disabled={busy}>
+            <Button
+              variant="secondary"
+              onClick={() => setRejecting(false)}
+              disabled={busy}
+            >
               Отмена
             </Button>
           </div>
@@ -87,7 +124,12 @@ function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: Appl
             {busy ? <Spinner /> : <CheckIcon weight="bold" />}
             Принять
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setRejecting(true)} disabled={busy}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setRejecting(true)}
+            disabled={busy}
+          >
             <XIcon weight="bold" />
             Отказать
           </Button>
@@ -98,13 +140,22 @@ function ApplicationRow({ cityId, item, onNotice }: { cityId: number; item: Appl
   );
 }
 
-export function ApplicationsList({ cityId, items }: { cityId: number; items: ApplicationItem[] }) {
+export function ApplicationsList({
+  cityId,
+  items,
+}: {
+  cityId: number;
+  items: ApplicationItem[];
+}) {
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className="space-y-3">
       {notice && (
-        <p role="status" className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-primary">
+        <p
+          role="status"
+          className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-primary"
+        >
           {notice}
         </p>
       )}
@@ -113,7 +164,12 @@ export function ApplicationsList({ cityId, items }: { cityId: number; items: App
       ) : (
         <ul className="space-y-2">
           {items.map((item) => (
-            <ApplicationRow key={item.id} cityId={cityId} item={item} onNotice={setNotice} />
+            <ApplicationRow
+              key={item.id}
+              cityId={cityId}
+              item={item}
+              onNotice={setNotice}
+            />
           ))}
         </ul>
       )}

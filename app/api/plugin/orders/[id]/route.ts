@@ -8,14 +8,17 @@ const bodySchema = z.object({
   reason: z.string().max(255).optional(),
 });
 
-/** Плагин подтверждает итог выдачи заказа. При status="failed" Вторнички возвращаются игроку. */
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const auth = await verifyPluginRequest(req);
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
   const orderId = Number(id);
-  if (!Number.isInteger(orderId) || orderId < 1) return errorResponse(400, "bad_request", "Некорректный id заказа");
+  if (!Number.isInteger(orderId) || orderId < 1)
+    return errorResponse(400, "bad_request", "Некорректный id заказа");
 
   let json: unknown;
   try {
@@ -24,9 +27,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return errorResponse(400, "bad_json", "Тело запроса не является JSON");
   }
   const body = bodySchema.safeParse(json);
-  if (!body.success) return errorResponse(400, "bad_request", 'Ожидается { "status": "delivered" | "failed", "reason"?: string }');
+  if (!body.success)
+    return errorResponse(
+      400,
+      "bad_request",
+      'Ожидается { "status": "delivered" | "failed", "reason"?: string }',
+    );
 
-  const result = await completeOrder(orderId, body.data.status, body.data.reason);
+  const result = await completeOrder(
+    orderId,
+    body.data.status,
+    body.data.reason,
+  );
   switch (result) {
     case "ok":
     case "already":
@@ -34,6 +46,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     case "not_found":
       return errorResponse(404, "not_found", "Заказ не найден");
     case "conflict":
-      return errorResponse(409, "conflict", "Заказ уже закрыт с другим результатом");
+      return errorResponse(
+        409,
+        "conflict",
+        "Заказ уже закрыт с другим результатом",
+      );
   }
 }

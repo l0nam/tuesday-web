@@ -14,13 +14,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 
-/**
- * Схема БД сайта (MariaDB/MySQL).
- *
- * Все даты хранятся в UTC и выставляются приложением (не DEFAULT CURRENT_TIMESTAMP),
- * чтобы результат не зависел от часового пояса сервера БД.
- */
-
 const ts = (name: string) => datetime(name, { mode: "date", fsp: 3 });
 const createdAt = () =>
   ts("created_at")
@@ -36,11 +29,6 @@ export const onlineSample = mysqlTable("online_sample", {
   bucket: ts("bucket").primaryKey(),
   online: int("online", { unsigned: true }).notNull(),
 });
-/* ------------------------------------------------------------------ */
-/* Better Auth                                                          */
-/* Имена экспортов (user, session, account, verification) важны:       */
-/* адаптер ищет таблицы по именам моделей.                             */
-/* ------------------------------------------------------------------ */
 
 export const user = mysqlTable("user", {
   id: varchar("id", { length: 36 }).primaryKey(),
@@ -90,7 +78,6 @@ export const account = mysqlTable(
   },
   (t) => [
     index("account_user_idx").on(t.userId),
-    // Один Discord-аккаунт не может быть привязан к двум пользователям сайта
     uniqueIndex("account_provider_account_uidx").on(t.providerId, t.accountId),
   ],
 );
@@ -109,7 +96,7 @@ export const verification = mysqlTable(
 );
 
 /* ------------------------------------------------------------------ */
-/* Игрок: Discord, привязанный игровой аккаунт и баланс                 */
+/* Игрок                                                              */
 /* ------------------------------------------------------------------ */
 
 export const player = mysqlTable(
@@ -119,18 +106,13 @@ export const player = mysqlTable(
       .primaryKey()
       .references(() => user.id, { onDelete: "cascade" }),
     discordId: varchar("discord_id", { length: 32 }).notNull().unique(),
-    /** UUID игрока без дефисов, нижний регистр. NULL, пока Discord не привязан к игровому аккаунту. */
     mcUuid: char("mc_uuid", { length: 32 }).unique(),
     mcName: varchar("mc_name", { length: 32 }),
-    /** Баланс Вторничков. Меняется только через lib/wallet.ts (вместе с записью в ledger). */
     balance: int("balance", { unsigned: true }).notNull().default(0),
     linkCheckedAt: ts("link_checked_at"),
     linkedAt: ts("linked_at"),
 
-    /* Публичный профиль */
-    /** Описание профиля в Markdown (GFM), пишет сам игрок */
     bio: text("bio"),
-    /** Показывать ли Discord-ник в профиле */
     showDiscord: boolean("show_discord").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -139,7 +121,7 @@ export const player = mysqlTable(
 );
 
 /* ------------------------------------------------------------------ */
-/* Журнал операций с Вторничками (источник истины для истории)         */
+/* Журнал операций с Вторничками                                      */
 /* ------------------------------------------------------------------ */
 
 export const LEDGER_TYPES = [
@@ -162,13 +144,10 @@ export const ledger = mysqlTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    /** Со знаком: начисление > 0, списание < 0 */
     amount: int("amount").notNull(),
     balanceAfter: int("balance_after", { unsigned: true }).notNull(),
     type: varchar("type", { length: 32 }).$type<LedgerType>().notNull(),
-    /** Человекочитаемая ссылка на источник: id достижения, название товара и т.д. */
     ref: varchar("ref", { length: 191 }),
-    /** Уникальный ключ операции: повторное событие с тем же ключом не начислит дважды */
     idempotencyKey: varchar("idempotency_key", { length: 191 })
       .notNull()
       .unique(),
@@ -178,10 +157,6 @@ export const ledger = mysqlTable(
   (t) => [index("ledger_user_created_idx").on(t.userId, t.createdAt)],
 );
 
-/**
- * Награды игроков, которые ещё не зарегистрировались на сайте / не привязали аккаунт.
- * Зачисляются на баланс при привязке игрового аккаунта (см. claimPendingRewards).
- */
 export const pendingReward = mysqlTable(
   "pending_reward",
   {
@@ -201,14 +176,12 @@ export const pendingReward = mysqlTable(
   (t) => [index("pending_reward_uuid_idx").on(t.mcUuid)],
 );
 
-/** Сколько часов наигранного времени уже оплачено (по UUID, даже до регистрации на сайте). */
 export const playtimeProgress = mysqlTable("playtime_progress", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
   creditedUnits: int("credited_units", { unsigned: true }).notNull().default(0),
   updatedAt: updatedAt(),
 });
 
-/** Известные ники игроков по UUID (из событий плагина и Mojang API). */
 export const mcProfile = mysqlTable(
   "mc_profile",
   {
@@ -216,18 +189,11 @@ export const mcProfile = mysqlTable(
     name: varchar("name", { length: 32 }).notNull(),
     updatedAt: updatedAt(),
   },
-  // Страница профиля ищет игрока по нику: /players/{name}
   (t) => [index("mc_profile_name_idx").on(t.name)],
 );
 
-/* ------------------------------------------------------------------ */
-/* Статистика игрока для профиля (данные присылает плагин)             */
-/* Работает по UUID: профиль есть даже у игрока без аккаунта на сайте. */
-/* ------------------------------------------------------------------ */
-
 export const playerStats = mysqlTable("player_stats", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
-  /** Общее наигранное время, секунды (накопительный итог от плагина) */
   totalSeconds: bigint("total_seconds", { mode: "number", unsigned: true })
     .notNull()
     .default(0),
@@ -235,14 +201,11 @@ export const playerStats = mysqlTable("player_stats", {
   firstSeenAt: ts("first_seen_at")
     .notNull()
     .$defaultFn(() => new Date()),
-  /** Последняя активность (вход, выход или сердцебиение плагина) */
   lastSeenAt: ts("last_seen_at"),
-  /** Момент предыдущего отчёта о наигранном времени: нужен, чтобы честно делить время через полночь */
   playtimeReportedAt: ts("playtime_reported_at"),
   updatedAt: updatedAt(),
 });
 
-/** Игровое время по дням (по часовому поясу сайта). Сам факт строки означает "заходил в этот день". */
 export const playerDay = mysqlTable(
   "player_day",
   {
@@ -253,77 +216,50 @@ export const playerDay = mysqlTable(
   (t) => [primaryKey({ columns: [t.mcUuid, t.day] })],
 );
 
-/**
- * Кэш Discord-данных игрока (по UUID, даже без аккаунта на сайте): роли, которые сайт умеет показывать
- * (см. ROLE_BADGES в lib/profile/config.ts), и Discord-ник. Заполняется при просмотре профиля (lib/profile/discord.ts).
- * Discord ID берётся из аккаунта сайта, а если его нет, то из связки DiscordSRV.
- */
 export const playerDiscord = mysqlTable("player_discord", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
-  /** NULL: у игрока нет привязанного Discord */
   discordId: varchar("discord_id", { length: 32 }),
   username: varchar("username", { length: 64 }),
-  /** Ключи ролей сайта (admin, moderator, player), а не ID ролей Discord */
   roles: json("roles").$type<string[]>().notNull(),
-  /** Когда обновляли в последний раз (или начали обновлять); NULL: ещё ни разу */
   checkedAt: ts("checked_at"),
   updatedAt: updatedAt(),
 });
 
-/** Донат-статус игрока (источник: плагин). tier из DONATE_TIERS в lib/profile/config.ts. */
 export const playerDonate = mysqlTable("player_donate", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
   tier: varchar("tier", { length: 32 }).notNull(),
-  /** NULL = бессрочно */
   expiresAt: ts("expires_at"),
   updatedAt: updatedAt(),
 });
 
-/** Город (бывшая община), в котором состоит игрок (источник: плагин). */
 export const playerCity = mysqlTable("player_city", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
   cityId: varchar("city_id", { length: 100 }).notNull(),
   cityName: varchar("city_name", { length: 120 }).notNull(),
-  /** Роль в городе, например owner / member (как называет плагин) */
   role: varchar("role", { length: 32 }),
   members: int("members", { unsigned: true }),
   updatedAt: updatedAt(),
 });
-
-/* ------------------------------------------------------------------ */
-/* Города сайта: создаются игроками, управляются владельцем            */
-/* (lib/cities/*). player_city выше это городская принадлежность, которую */
-/* присылает плагин; эти таблицы - источник истины для самого сайта.   */
-/* ------------------------------------------------------------------ */
 
 export const CITY_ROLES = ["owner", "coowner", "member"] as const;
 export type CityRole = (typeof CITY_ROLES)[number];
 
 export const city = mysqlTable("city", {
   id: int("id", { unsigned: true }).primaryKey().autoincrement(),
-  /** Название. Выбирается при создании и больше не меняется. */
   name: varchar("name", { length: 32 }).notNull(),
-  /** Название в нижнем регистре без лишних пробелов: гарантирует уникальность без учёта регистра */
   nameKey: varchar("name_key", { length: 64 }).notNull().unique(),
   description: varchar("description", { length: 300 }),
-  /** Владелец. Уникален: один игрок может создать только один город. */
   ownerId: varchar("owner_id", { length: 36 })
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
-  /** Флаг города в формате lib/cities/banner.ts. Задаётся при создании и больше не меняется. */
   bannerCode: varchar("banner_code", { length: 255 }).notNull(),
   discordUrl: varchar("discord_url", { length: 255 }),
-  /** Открыт ли набор: подавать заявки можно только пока true */
   recruiting: boolean("recruiting").notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-/**
- * Жители города. Первичный ключ - пользователь: игрок может состоять только в одном городе,
- * и база не даст нарушить это ограничение даже при гонке запросов.
- */
 export const cityMember = mysqlTable(
   "city_member",
   {
@@ -352,7 +288,6 @@ export const APPLICATION_STATUSES = [
 ] as const;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
-/** Заявки на вступление. На пару (город, игрок) одна строка: повторная заявка переиспользует её. */
 export const cityApplication = mysqlTable(
   "city_application",
   {
@@ -365,13 +300,11 @@ export const cityApplication = mysqlTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    /** Сообщение от игрока ("о себе"), необязательно */
     message: varchar("message", { length: 300 }),
     status: varchar("status", { length: 16 })
       .$type<ApplicationStatus>()
       .notNull()
       .default("pending"),
-    /** Причина отказа: обязательна при status = rejected, видна заявителю */
     rejectReason: varchar("reject_reason", { length: 300 }),
     reviewedBy: varchar("reviewed_by", { length: 36 }),
     reviewedAt: ts("reviewed_at"),
@@ -477,7 +410,6 @@ export const adminRole = mysqlTable(
   "admin_role",
   {
     id: int("id", { unsigned: true }).autoincrement().primaryKey(),
-    /** Actual Discord role ID; never key permissions by a translated label. */
     discordRoleId: varchar("discord_role_id", { length: 32 }).notNull(),
     label: varchar("label", { length: 64 }).notNull(),
     createdAt: createdAt(),
@@ -527,7 +459,6 @@ export const adminAudit = mysqlTable(
 );
 
 export const adminReviewBlock = mysqlTable("admin_review_block", {
-  /** A user can have one active review-submission block at a time. */
   userId: varchar("user_id", { length: 36 })
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),

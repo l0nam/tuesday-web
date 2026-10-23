@@ -1,13 +1,13 @@
 import { and, asc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db, withTransaction } from "@/lib/db";
 import { player, shopItem, shopOrder } from "@/lib/db/schema";
-import { formatUuid } from "@/lib/minecraft/uuid";
 import {
   credit,
   debit,
   InsufficientFundsError,
   insertId,
 } from "@/lib/economy/wallet";
+import { formatUuid } from "../utils/formatting";
 
 export type ShopErrorCode =
   | "not_linked"
@@ -28,10 +28,6 @@ export class ShopError extends Error {
   }
 }
 
-/**
- * Если плагин забрал заказ, но не подтвердил выдачу за это время, заказ отдаётся ему повторно.
- * Поэтому плагин ОБЯЗАН помнить id уже выданных заказов и не выдавать их второй раз.
- */
 export const ORDER_LEASE_MS = 5 * 60_000;
 
 export async function listShopItems() {
@@ -50,10 +46,6 @@ export async function listShopItems() {
     .orderBy(asc(shopItem.sortOrder), asc(shopItem.id));
 }
 
-/**
- * Покупка: списание Вторничков, уменьшение остатка и создание заказа на выдачу.
- * Всё в одной транзакции: либо всё, либо ничего.
- */
 export async function purchaseItem(userId: string, itemId: number) {
   try {
     return await withTransaction(async (tx) => {
@@ -70,7 +62,6 @@ export async function purchaseItem(userId: string, itemId: number) {
         );
       }
 
-      // Порядок блокировок везде одинаковый: товар -> игрок
       const [item] = await tx
         .select()
         .from(shopItem)
@@ -132,17 +123,11 @@ export async function purchaseItem(userId: string, itemId: number) {
 export interface PluginOrder {
   id: number;
   uuid: string;
-  /** Ник на момент покупки. Плагину надёжнее определять ник по uuid, это значение запасное. */
   player: string | null;
   item: string;
-  /** Команды консоли с плейсхолдерами {player} и {uuid} */
   commands: string[];
 }
 
-/**
- * Отдаёт плагину заказы на выдачу и помечает их "в работе".
- * SKIP LOCKED позволяет нескольким опросам идти параллельно, не забирая один заказ дважды.
- */
 export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
   const leaseCutoff = new Date(Date.now() - ORDER_LEASE_MS);
 
@@ -191,12 +176,6 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
 
 export type CompleteResult = "ok" | "already" | "not_found" | "conflict";
 
-/**
- * Плагин сообщает итог выдачи.
- *  - delivered: заказ закрыт.
- *  - failed: заказ закрыт, Вторнички возвращаются на баланс, остаток товара восстанавливается.
- * Повторное сообщение с тем же итогом безопасно ("already").
- */
 export async function completeOrder(
   orderId: number,
   outcome: "delivered" | "failed",
@@ -231,7 +210,6 @@ export async function completeOrder(
       })
       .where(eq(shopOrder.id, orderId));
 
-    // Вернуть товар на склад (только если у него вообще есть учёт остатка)
     await tx
       .update(shopItem)
       .set({ stock: sql`${shopItem.stock} + 1` })

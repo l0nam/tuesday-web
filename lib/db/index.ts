@@ -6,7 +6,6 @@ import * as schema from "./schema";
 export type Db = MySql2Database<typeof schema>;
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-// Один пул на процесс (в dev переживает hot reload, на Vercel живёт в пределах инстанса)
 const g = globalThis as unknown as { __tuesdayPool?: Pool; __tuesdayDb?: Db };
 
 export function getDb(): Db {
@@ -15,7 +14,6 @@ export function getDb(): Db {
   const env = getEnv();
   const pool = createPool({
     uri: env.DATABASE_URL,
-    // Панельные хостинги часто ограничивают число подключений на пользователя, поэтому пул маленький
     connectionLimit: 4,
     maxIdle: 2,
     idleTimeout: 60_000,
@@ -31,7 +29,6 @@ export function getDb(): Db {
   return g.__tuesdayDb;
 }
 
-/** Ленивый `db`: подключение создаётся при первом запросе, а не при импорте модуля. */
 export const db: Db = new Proxy({} as Db, {
   get(_target, prop) {
     const real = getDb();
@@ -40,17 +37,6 @@ export const db: Db = new Proxy({} as Db, {
   },
 });
 
-/**
- * Все транзакции приложения выполняются на READ COMMITTED.
- *
- * Почему не уровень по умолчанию (REPEATABLE READ): там снимок данных фиксируется на первом обычном
- * SELECT. Транзакция, дождавшаяся блокировки строки игрока (FOR UPDATE), не видела бы записи,
- * закоммиченные соседней транзакцией за время ожидания (например, ключ идемпотентности в ledger).
- * READ COMMITTED видит свежие данные в каждом запросе и не ставит gap-блокировки.
- *
- * Если MariaDB работает с binlog_format=STATEMENT, она откажет в этом режиме (ошибка 1665).
- * Тогда нужен binlog_format=MIXED или ROW (на MariaDB 10.2+ по умолчанию MIXED).
- */
 export function withTransaction<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   return getDb().transaction(fn, { isolationLevel: "read committed" });
 }

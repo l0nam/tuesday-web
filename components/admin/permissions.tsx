@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import type { PermissionRole } from "./types";
 import { Empty, Panel, Pill } from "./utils";
 import { pluralRu } from "@/lib/utils/formatting";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";

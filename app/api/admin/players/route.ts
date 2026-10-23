@@ -9,10 +9,28 @@ export async function GET(req: Request) {
   if (!access.ok) return access.response;
   const q = new URL(req.url).searchParams.get("q")?.trim().slice(0, 64) ?? "";
   const rows = await db
-    .select({ userId: user.id, name: user.name, image: user.image, createdAt: user.createdAt, discordId: player.discordId, mcName: player.mcName, mcUuid: player.mcUuid, balance: player.balance, linkedAt: player.linkedAt })
+    .select({
+      userId: user.id,
+      name: user.name,
+      image: user.image,
+      createdAt: user.createdAt,
+      discordId: player.discordId,
+      mcName: player.mcName,
+      mcUuid: player.mcUuid,
+      balance: player.balance,
+      linkedAt: player.linkedAt,
+    })
     .from(user)
     .innerJoin(player, eq(player.userId, user.id))
-    .where(q ? or(like(user.name, `%${q}%`), like(player.mcName, `%${q}%`), like(player.discordId, `%${q}%`)) : undefined)
+    .where(
+      q
+        ? or(
+            like(user.name, `%${q}%`),
+            like(player.mcName, `%${q}%`),
+            like(player.discordId, `%${q}%`),
+          )
+        : undefined,
+    )
     .orderBy(desc(player.balance))
     .limit(100);
   return jsonResponse({ players: rows, permissions: [...access.permissions] });

@@ -64,6 +64,13 @@ function formatLedgerType(type: string) {
   return LEDGER_LABELS[type] ?? type.replaceAll("_", " ");
 }
 
+const ORDER_LABELS: Record<string, string> = {
+  pending: "Ожидает выдачи",
+  processing: "В обработке",
+  delivered: "Выдан",
+  failed: "Ошибка / возврат",
+};
+
 function formatLedgerRef(ref: string | null, type: string) {
   if (!ref) {
     switch (type) {
@@ -383,7 +390,7 @@ export function PlayersTab({
                               : "warn"
                         }
                       >
-                        {order.status}
+                        {ORDER_LABELS[order.status] ?? order.status}
                       </Pill>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 import type { SyncResult } from "@/lib/player";
-import { formatUuid } from "@/lib/minecraft/uuid";
+import { formatUuid } from "./formatting";
+import type { AccountContext } from "@/lib/utils/account-context";
 
 export interface AccountPayload {
   authenticated: true;
@@ -11,15 +12,16 @@ export interface AccountPayload {
     mcUuid: string | null;
     mcName: string | null;
   };
-  /** linked - привязан; not_linked - нужно привязать Discord к игровому аккаунту; unavailable - БД DiscordSRV недоступна */
   link: SyncResult["link"];
-  /** Сколько Вторничков, набранных до привязки, зачислено только что */
   claimed: SyncResult["claimed"];
+  city: AccountContext["city"];
+  canAccessAdmin: boolean;
 }
 
 export function toAccountPayload(
   user: { id: string; name: string; image?: string | null },
   sync: SyncResult,
+  context: AccountContext,
 ): AccountPayload {
   const p = sync.player;
   return {
@@ -34,5 +36,7 @@ export function toAccountPayload(
     },
     link: sync.link,
     claimed: sync.claimed,
+    city: context.city,
+    canAccessAdmin: context.canAccessAdmin,
   };
 }

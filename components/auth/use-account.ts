@@ -17,6 +17,8 @@ type AccountState =
       player: AccountPayload["player"];
       link: AccountPayload["link"];
       claimed: AccountPayload["claimed"];
+      city: AccountPayload["city"];
+      canAccessAdmin: AccountPayload["canAccessAdmin"];
     };
 
 let inflight: Promise<AccountState> | null = null;
@@ -42,6 +44,8 @@ async function loadAccount(): Promise<AccountState> {
       player: data.player,
       link: data.link,
       claimed: data.claimed,
+      city: data.city,
+      canAccessAdmin: data.canAccessAdmin,
     };
   } catch {
     return { status: "error" };

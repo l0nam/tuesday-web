@@ -1,10 +1,3 @@
-/**
- * Minecraft-accurate city banners.
- *
- * Pattern masks come from the front-face UV area (x=1, y=1, 20x40) of the
- * vanilla Minecraft Java Edition 1.21.4 banner textures. Each mask is stored
- * as RLE pairs [runLength, alpha] encoded as base64.
- */
 export const BANNER_W = 20;
 export const BANNER_H = 40;
 export const BANNER_MAX_LAYERS = 16;
@@ -45,7 +38,6 @@ export function dyeHex(color: DyeColor): string {
 
 type Mask = (x: number, y: number) => number;
 
-/** Vanilla pattern masks. RLE pairs are [pixel count, alpha 0..255]. */
 const VANILLA_MASK_RLE = {
   stripe_bottom: "/wD/AAoAFL///wX/",
   stripe_top: "//8F/xS//wD/AAoA",
@@ -387,10 +379,8 @@ export type PatternId = (typeof PATTERN_DEFS)[number]["id"];
 
 export interface PatternInfo {
   id: PatternId;
-  /** Minecraft resource name, e.g. minecraft:stripe_bottom. */
   name: string;
   label: string;
-  /** Pixel opacity, 0 = transparent, 1 = fully covered. */
   mask: Mask;
 }
 
@@ -429,7 +419,6 @@ export type ParseResult =
   | { ok: true; banner: Banner }
   | { ok: false; error: string };
 
-/** Short share code, e.g. white|bs:red|cr:black. */
 export function serializeBanner(banner: Banner): string {
   return [
     banner.base,
@@ -469,7 +458,6 @@ export function parseBannerCode(raw: string): ParseResult {
   return { ok: true, banner: { base, layers } };
 }
 
-/** Minecraft Java 1.20.5+ /give command. */
 export function toGiveCommand(banner: Banner): string {
   const patterns = banner.layers
     .map(
@@ -532,7 +520,6 @@ function parseGiveCommand(text: string): ParseResult {
   return { ok: true, banner: { base, layers } };
 }
 
-/** Accepts the short share code or a Minecraft /give command. */
 export function parseBannerInput(raw: string): ParseResult {
   const text = raw.trim();
   if (!text) return { ok: false, error: "Вставьте код флага" };
@@ -549,7 +536,6 @@ function rgbToHex([red, green, blue]: [number, number, number]): string {
   return `#${[red, green, blue].map((value) => Math.round(value).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Render the banner as 20x40 colors, layering from bottom to top. */
 export function renderBannerPixels(banner: Banner): string[][] {
   const base = hexToRgb(dyeHex(banner.base));
   const grid: [number, number, number][][] = Array.from(

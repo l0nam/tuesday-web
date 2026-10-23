@@ -3,16 +3,6 @@ import type { ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-/**
- * Описание профиля с Markdown-форматированием (заголовки, жирный/курсив, списки, цитаты, код, таблицы,
- * ссылки, списки задач). Это не настоящий MDX: MDX выполняет JavaScript, а текст пишут посторонние люди,
- * поэтому здесь безопасный Markdown:
- *  - HTML в тексте не выполняется и не отрисовывается как разметка (виден как обычный текст);
- *  - ссылки только http, https и mailto, открываются в новой вкладке с rel="nofollow ugc noopener";
- *  - картинки не отображаются (иначе по ним можно отслеживать посетителей и вставлять чужой контент),
- *    вместо них остаётся подпись.
- */
-
 const ALLOWED_LINK = /^(https?:|mailto:)/i;
 
 function safeUrl(url: string): string {
@@ -116,9 +106,7 @@ const components: Components = {
     </th>
   ),
   td: ({ children }) => (
-    <td className="border-b  px-3 py-2 last:border-r-0">
-      {children}
-    </td>
+    <td className="border-b  px-3 py-2 last:border-r-0">{children}</td>
   ),
   input: ({ checked }) => (
     <input

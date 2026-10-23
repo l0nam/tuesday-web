@@ -15,11 +15,6 @@ export function errorResponse(
   return jsonResponse({ error: { code, message } }, status);
 }
 
-/**
- * Защита от CSRF для POST-эндпоинтов, которыми пользуется браузер:
- * заголовок Origin должен совпадать с адресом сайта.
- * Возвращает Response с ошибкой или null, если всё в порядке.
- */
 export function checkSameOrigin(req: Request): Response | null {
   const origin = req.headers.get("origin");
   if (!origin)

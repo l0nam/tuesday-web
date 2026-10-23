@@ -68,7 +68,6 @@ export async function POST(req: Request) {
       rating: parsed.data.rating,
     });
   } catch (error) {
-    // Защита от двух одновременных запросов: уникальный индекс user_id — источник истины.
     if (isDuplicateKey(error)) {
       return errorResponse(
         409,

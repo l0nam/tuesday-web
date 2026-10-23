@@ -41,7 +41,12 @@ import {
   listResidents,
 } from "@/lib/cities/queries";
 import { CITY, CITY_ROLE_TITLES } from "@/lib/cities/rules";
-import { formatNumber, formatCurrency, pluralRu, formatAgo } from "@/lib/utils/formatting";
+import {
+  formatNumber,
+  formatCurrency,
+  pluralRu,
+  formatAgo,
+} from "@/lib/utils/formatting";
 
 export const metadata: Metadata = { title: "Город" };
 

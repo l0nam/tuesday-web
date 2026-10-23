@@ -121,27 +121,6 @@ export function ReviewsTab({
                   </CardAction>
                 </CardHeader>
               </Card>
-              // <div
-              //   key={row.userId}
-              //   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
-              // >
-              //   <div>
-              //     <p className="font-medium">{row.mcName ?? row.userName}</p>
-
-              //     <p className="mt-1 text-xs text-muted-foreground">
-              //       Discord: {row.discordId} ·{" "}
-              //       {row.reason || "Причина не указана"}
-              //     </p>
-              //   </div>
-
-              // <Button
-              //   size="sm"
-              //   variant="outline"
-              //   onClick={() => onUnblockUser(row.userId)}
-              // >
-              //   Разблокировать
-              // </Button>
-              // </div>
             ))}
 
             {blockedRows.length === 0 && (

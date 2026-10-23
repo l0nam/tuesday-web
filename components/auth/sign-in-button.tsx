@@ -11,8 +11,6 @@ export function SignInButton({
   label?: string;
 }) {
   return (
-    <Button onClick={() => void signInWithDiscord(callbackURL)}>
-      {label}
-    </Button>
+    <Button onClick={() => void signInWithDiscord(callbackURL)}>{label}</Button>
   );
 }

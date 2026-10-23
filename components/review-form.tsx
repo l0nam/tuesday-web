@@ -129,7 +129,10 @@ export function ReviewForm({
           <DialogTrigger render={<Button>Оставить отзыв</Button>} />
 
           <DialogContent>
-            <form onSubmit={(event) => void submit(event)} className="space-y-5">
+            <form
+              onSubmit={(event) => void submit(event)}
+              className="space-y-5"
+            >
               <fieldset className="space-y-2" disabled={busy}>
                 <legend className="text-sm font-medium">Оценка сервера</legend>
 

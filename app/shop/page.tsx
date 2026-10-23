@@ -5,7 +5,7 @@ import { syncLink } from "@/lib/player";
 import { getSession } from "@/lib/auth/session";
 import { listShopItems } from "@/lib/economy/shop";
 import { BuyButton } from "./buy-button";
-import { ArrowLeftIcon, CaretLeftIcon } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import { formatNumber, formatCurrency } from "@/lib/utils/formatting";
 import {
   Card,

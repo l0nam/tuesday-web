@@ -25,7 +25,7 @@ import {
   type HeatCell,
 } from "@/lib/profile/stats";
 import { dayKey } from "@/lib/utils/time";
-import { MC_NAME_RE } from "@/lib/minecraft/uuid";
+import { MC_NAME_RE } from "../utils/formatting";
 
 export interface ProfileData {
   uuid: string;
@@ -41,7 +41,6 @@ export interface ProfileData {
     name: string;
     role: string | null;
     members: number | null;
-    /** Страница города на сайте и его флаг; null для города, о котором сообщил только плагин */
     href: string | null;
     banner: Banner | null;
   } | null;
@@ -119,7 +118,6 @@ export async function loadProfile(
         .limit(1),
     ]);
 
-  // Город с сайта главнее города от плагина: он создан и управляется на сайте
   const siteCity = playerRow ? await getCityForUser(playerRow.userId) : null;
 
   const today = dayKey(now);

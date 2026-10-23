@@ -431,7 +431,6 @@ export function BannerEditorDialog({
   const [banner, setBanner] = useState<Banner>(value ?? DEFAULT_BANNER);
 
   function handleOpenChange(next: boolean) {
-    // при каждом открытии начинаем с актуального значения
     if (next) setBanner(value ?? DEFAULT_BANNER);
     onOpenChange(next);
   }
@@ -530,7 +529,7 @@ export function BannerField({
           placeholder="Или вставьте код: white|bs:red|cr:black"
           aria-label="Код флага"
           aria-invalid={Boolean(error)}
-          className="font-mono text-xs w-1/2"
+          className="w-1/2"
         />
 
         {error && (

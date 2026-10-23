@@ -1,11 +1,19 @@
 import { z } from "zod";
-import { badId, handleCityRequest, jsonResponse, parseId, readBody } from "@/lib/cities/api";
+import {
+  badId,
+  handleCityRequest,
+  jsonResponse,
+  parseId,
+  readBody,
+} from "@/lib/cities/api";
 import { applyToCity, cancelApplication } from "@/lib/cities/service";
 
 const bodySchema = z.object({ message: z.string().max(2000).nullish() });
 
-/** Подать заявку на вступление в город. */
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const cityId = parseId((await params).id);
   if (!cityId) return badId();
 
@@ -17,8 +25,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
 }
 
-/** Отозвать свою заявку. */
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const cityId = parseId((await params).id);
   if (!cityId) return badId();
 

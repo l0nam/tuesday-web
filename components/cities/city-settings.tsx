@@ -9,7 +9,6 @@ import { ErrorNote, useCityApi } from "@/components/cities/use-city-api";
 import { CITY } from "@/lib/cities/rules";
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldSet,
   FieldLabel,
