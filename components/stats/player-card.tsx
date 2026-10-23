@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { PlayerHead } from "@/components/player/player-head";
 import type { PlayerCardData } from "@/lib/stats/players";
-import { formatHours } from "@/lib/profile/stats";
+import { formatHours } from "@/lib/utils/formatting";
 
 /** Карточка игрока в списке: голова, ник, наигранное время и зелёная точка, если он сейчас в игре. */
 export function PlayerCard({ player }: { player: PlayerCardData }) {

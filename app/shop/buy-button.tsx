@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
+import { formatNumber, formatCurrency } from "@/lib/utils/formatting";
 import { cn } from "cn";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -62,7 +62,7 @@ export function BuyButton({ itemId, price, disabledReason }: Props) {
             <Spinner /> Покупаем…
           </>
         ) : (
-          `Купить за ${formatNumber(price, true)} ${formatСurrency(price, true)}`
+          `Купить за ${formatNumber(price)} ${formatCurrency(price, true)}`
         )}
       </Button>
 

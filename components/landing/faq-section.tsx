@@ -1,12 +1,17 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
 import { cn } from "cn";
 import { Section } from "../ui/section";
-import { CaretDownIcon, LinkIcon } from "@phosphor-icons/react/dist/ssr";
+import { LinkIcon } from "@phosphor-icons/react/dist/ssr";
 import { LINKS } from "@/lib/data";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
 
 type Faq = { question: string; answer: string };
 const FAQ: Faq[] = [
@@ -41,70 +46,9 @@ const FAQ: Faq[] = [
   },
 ];
 
-function FaqItem({
-  item,
-  open,
-  onToggle,
-  id,
-}: {
-  item: Faq;
-  open: boolean;
-  onToggle: () => void;
-  id: string;
-}) {
-  const panelId = `${id}-panel`;
-  const buttonId = `${id}-button`;
-
-  return (
-    <li className="border-b  first:border-t">
-      <h3>
-        <button
-          id={buttonId}
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
-          aria-controls={panelId}
-          className={cn(
-            "flex w-full items-center justify-between gap-6 py-5 text-base font-medium outline-none transition-colors duration-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 sm:text-lg",
-            open && "text-primary",
-          )}
-        >
-          {item.question}
-          <CaretDownIcon
-            weight="bold"
-            className={cn(
-              "size-5 shrink-0 text-muted-foreground transition-transform duration-300",
-              open && "rotate-180 text-primary",
-            )}
-          />
-        </button>
-      </h3>
-
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            id={panelId}
-            role="region"
-            aria-labelledby={buttonId}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.65, 0, 0.35, 1] }}
-            className="overflow-hidden"
-          >
-            <p className="max-w-2xl pb-5 text-pretty leading-relaxed text-muted-foreground">
-              {item.answer}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </li>
-  );
-}
-
 export function FaqSection() {
-  const baseId = useId();
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const firstQuestion = FAQ[0].question;
+  const [open, setOpen] = useState<string[]>([firstQuestion]);
 
   return (
     <Section id="faq">
@@ -134,17 +78,28 @@ export function FaqSection() {
           </p>
         </div>
 
-        <ul>
-          {FAQ.map((item, i) => (
-            <FaqItem
-              key={item.question}
-              id={`${baseId}-${i}`}
-              item={item}
-              open={openIndex === i}
-              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-            />
-          ))}
-        </ul>
+        <Accordion value={open} onValueChange={setOpen}>
+          {FAQ.map((item) => {
+            const isOpen = open.includes(item.question);
+
+            return (
+              <AccordionItem key={item.question} value={item.question}>
+                <AccordionTrigger
+                  className={cn(
+                    "hover:text-primary text-base sm:text-lg",
+                    isOpen && "text-primary",
+                  )}
+                >
+                  {item.question}
+                </AccordionTrigger>
+
+                <AccordionContent className="text-base">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </div>
     </Section>
   );

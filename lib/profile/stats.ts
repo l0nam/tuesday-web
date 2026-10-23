@@ -118,33 +118,3 @@ export function splitAcrossMidnight(
     parts.push({ day: previousDay, seconds: delta - todayPart });
   return parts;
 }
-
-export function formatHours(seconds: number): string {
-  return (seconds / 3600).toFixed(1);
-}
-
-export function formatAgo(from: Date, now: Date = new Date()): string {
-  const rtf = new Intl.RelativeTimeFormat("ru", { numeric: "auto" });
-  const seconds = Math.max(
-    0,
-    Math.round((now.getTime() - from.getTime()) / 1000),
-  );
-  if (seconds < 60) return "только что";
-  if (seconds < 3600) return rtf.format(-Math.floor(seconds / 60), "minute");
-  if (seconds < 86_400) return rtf.format(-Math.floor(seconds / 3600), "hour");
-  return rtf.format(-Math.floor(seconds / 86_400), "day");
-}
-
-export function pluralRu(
-  n: number,
-  one: string,
-  few: string,
-  many: string,
-): string {
-  const abs = Math.abs(n) % 100;
-  const last = abs % 10;
-  if (abs > 10 && abs < 20) return many;
-  if (last === 1) return one;
-  if (last >= 2 && last <= 4) return few;
-  return many;
-}

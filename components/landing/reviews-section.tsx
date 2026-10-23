@@ -1,41 +1,32 @@
-import { cn } from "cn";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { Section, SectionHeading } from "../ui/section";
 import { PlayerHead } from "../player/player-head";
+import { getPublicReviews } from "@/lib/reviews/config";
+import { ReviewStars } from "../review-form";
+import Link from "next/link";
+import { buttonVariants } from "../ui/button";
+import { cn } from "cn";
 
 export type Review = {
+  id: number;
   nick: string;
   text: string;
-  source?: string;
+  rating: number;
 };
 
-export const REVIEWS: Review[] = [
-  {
-    nick: "L0nam",
-    text: "Здесь будет отзыв. Вставь из Discord и укажите ник типа.",
-  },
-  {
-    nick: "ykollix",
-    text: "Короткий отзыв.",
-  },
-  {
-    nick: "Vo1tr0n",
-    text: "Отзыв подлиннее. Выбирай отзывы, в которых игроки рассказывают, что именно им понравилось: люди, постройки, общины, атмосфера. Так их читать интереснее.",
-  },
-  {
-    nick: "Lololowka",
-    text: "Здесь будет отзыв. Вставь из Discord и укажите ник типа.",
-  },
-  {
-    nick: "hgyft",
-    text: "Короткий отзыв.",
-  },
-  {
-    nick: "persama",
-    text: "Отзыв подлиннее. Выбирай отзывы, в которых игроки рассказывают, что именно им понравилось: люди, постройки, общины, атмосфера. Так их читать интереснее.",
-  },
-];
+export function ReviewsSection() {
+  return (
+    <Suspense fallback={null}>
+      <ReviewsContent />
+    </Suspense>
+  );
+}
 
-export function ReviewsSection({ reviews = REVIEWS }: { reviews?: Review[] }) {
+async function ReviewsContent() {
+  await connection();
+  const reviews = await getPublicReviews(9);
+
   if (reviews.length === 0) return null;
 
   return (
@@ -46,35 +37,42 @@ export function ReviewsSection({ reviews = REVIEWS }: { reviews?: Review[] }) {
       />
 
       <ul className="columns-1 gap-4 md:columns-2 lg:columns-3">
-        {reviews.map((review, i) => (
+        {reviews.map((review) => (
           <li
-            key={`${review.nick}-${i}`}
-            className={cn(
-              "mb-4 break-inside-avoid rounded-xl bg-card p-6 ring-1 ring-inset ring-foreground/10",
-            )}
+            key={review.id}
+            className="mb-4 break-inside-avoid rounded-xl bg-card p-6 ring-1 ring-inset ring-foreground/10"
           >
-            <blockquote className="text-pretty leading-relaxed">
-              {review.text}
-            </blockquote>
-
-            <div className="mt-5 flex items-center gap-3">
-              <PlayerHead
-                nickname={review.nick}
-                className="size-10 rounded-md"
-              />
-
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{review.nick}</p>
-                {review.source && (
-                  <p className="text-xs text-muted-foreground">
-                    {review.source}
-                  </p>
-                )}
-              </div>
-            </div>
+            <ReviewsData review={review} />
           </li>
         ))}
       </ul>
+
+      {reviews.length === 9 && (
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/reviews"
+            className={cn(buttonVariants({ variant: "default" }))}
+          >
+            Читать все отзывы
+          </Link>
+        </div>
+      )}
     </Section>
+  );
+}
+
+function ReviewsData({ review }: { review: Review }) {
+  return (
+    <>
+      <blockquote className="wrap-anywhere text-pretty whitespace-pre-wrap leading-relaxed">
+        {review.text}
+      </blockquote>
+
+      <div className="mt-5 flex items-center gap-3">
+        <PlayerHead nickname={review.nick} className="size-10 rounded-md" />
+        <p className="min-w-0 truncate text-sm font-medium">{review.nick}</p>
+        <ReviewStars count={review.rating} />
+      </div>
+    </>
   );
 }

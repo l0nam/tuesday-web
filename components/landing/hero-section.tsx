@@ -3,10 +3,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { Button } from "../ui/button";
+import { Button, buttonVariants } from "../ui/button";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { cn } from "cn";
 import { SERVER_IP } from "@/lib/data";
+import Link from "next/link";
+import { useAccount } from "../auth/use-account";
 
 const SUBTITLE =
   "Место, где начинается твоя история. Исследуй мир, создавая удивительные постройки и объединяйся с другими игроками, чтобы превратить обычное выживание в настоящее приключение.";
@@ -22,6 +24,7 @@ const BUTTONS = [
   {
     label: "Авторизоваться",
     variant: "default",
+    href: "/",
   },
   { label: "Подробнее", variant: "secondary", href: "/#features" },
 ] as const;
@@ -70,6 +73,9 @@ export function HeroSection({
 
   const isFinal = step === 2;
   const align = isFinal ? "self-start" : "self-center";
+
+  const account = useAccount();
+  const isAuthed = account.status === "authed";
 
   const randomPlayer = useMemo(() => {
     if (!server?.online) return null;
@@ -157,33 +163,40 @@ export function HeroSection({
             {step >= 1 && (
               <div className={`mt-5 flex flex-col gap-5 ${align}`}>
                 <div className="flex gap-3">
-                  {BUTTONS.map((button, i) => {
-                    return (
-                      <motion.div
-                        key={button.label}
-                        initial={{ opacity: 0, y: 48 }}
-                        animate={
-                          isFinal ? { opacity: 1, y: 0 } : { opacity: 0, y: 48 }
-                        }
-                        transition={{
-                          duration: 0.7,
-                          ease: EASE,
-                          delay: isFinal ? 0.35 + i * 0.12 : 0,
-                        }}
-                        className={`transition-[background-color,filter] ${isFinal ? "" : "pointer-events-none"}`}
+                  {BUTTONS.filter(
+                    (button) =>
+                      !(isAuthed && button.label === "Авторизоваться"),
+                  ).map((button, i) => (
+                    <motion.div
+                      key={button.label}
+                      initial={{ opacity: 0, y: 48 }}
+                      animate={
+                        isFinal ? { opacity: 1, y: 0 } : { opacity: 0, y: 48 }
+                      }
+                      transition={{
+                        duration: 0.7,
+                        ease: EASE,
+                        delay: isFinal ? 0.35 + i * 0.12 : 0,
+                      }}
+                      className={`transition-[background-color,filter] ${
+                        isFinal ? "" : "pointer-events-none"
+                      }`}
+                    >
+                      <Link
+                        tabIndex={isFinal ? 0 : -1}
+                        aria-hidden={!isFinal}
+                        href={button.href}
+                        className={cn(
+                          buttonVariants({
+                            variant: button.variant,
+                            size: "lg",
+                          }),
+                        )}
                       >
-                        <Button
-                          tabIndex={isFinal ? 0 : -1}
-                          aria-hidden={!isFinal}
-                          size={"lg"}
-                          variant={button.variant}
-                          title={"href" in button ? button.href : "Привет"}
-                        >
-                          {button.label}
-                        </Button>
-                      </motion.div>
-                    );
-                  })}
+                        {button.label}
+                      </Link>
+                    </motion.div>
+                  ))}
                 </div>
 
                 <motion.div

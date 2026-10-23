@@ -184,11 +184,6 @@ export function defaultSkinPng(): Buffer {
 const cache = new Map<string, { value: SkinResult; expires: number }>();
 const inflight = new Map<string, Promise<SkinResult>>();
 
-export function clearSkinCache() {
-  cache.clear();
-  inflight.clear();
-}
-
 function fallback(ttl: number): SkinResult {
   return { png: defaultSkinPng(), source: "default", ttl };
 }

@@ -3,7 +3,12 @@
  * Награды считает сайт, плагин лишь сообщает о событии (так цифры можно менять без обновления плагина).
  */
 
-export const ACHIEVEMENT_DIFFICULTIES = ["easy", "normal", "hard", "legendary"] as const;
+export const ACHIEVEMENT_DIFFICULTIES = [
+  "easy",
+  "normal",
+  "hard",
+  "legendary",
+] as const;
 export type AchievementDifficulty = (typeof ACHIEVEMENT_DIFFICULTIES)[number];
 
 export const REWARDS = {

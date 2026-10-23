@@ -14,7 +14,7 @@ import {
   WalletIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
+import { formatNumber, formatCurrency } from "@/lib/utils/formatting";
 
 const POINTS = [
   "Баланс привязан к вашему игровому аккаунту",
@@ -53,7 +53,7 @@ function WalletCard({ balance, shopHref, onAuthClick }: WalletCardProps) {
                   {formatNumber(balance)}
                 </span>
                 <span className="text-lg font-medium opacity-70">
-                  {formatСurrency(balance)}
+                  {formatCurrency(balance)}
                 </span>
               </p>
             </div>

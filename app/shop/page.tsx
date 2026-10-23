@@ -5,8 +5,8 @@ import { syncLink } from "@/lib/player";
 import { getSession } from "@/lib/auth/session";
 import { listShopItems } from "@/lib/economy/shop";
 import { BuyButton } from "./buy-button";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
-import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
+import { ArrowLeftIcon, CaretLeftIcon } from "@phosphor-icons/react/dist/ssr";
+import { formatNumber, formatCurrency } from "@/lib/utils/formatting";
 import {
   Card,
   CardContent,
@@ -15,10 +15,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Магазин" };
 
-export default async function ShopPage() {
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh justify-center items-center w-full text-muted-foreground">
+          Загружаем магазин...
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
+  );
+}
+
+async function ShopContent() {
   const session = await getSession();
   const sync = session ? await syncLink(session.user.id) : null;
   const items = await listShopItems();
@@ -31,16 +46,21 @@ export default async function ShopPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col">
           <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline hover:text-foreground font-medium transition"
+            href="/#reviews"
+            className="mb-6 inline-flex gap-2.5 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeftIcon weight="bold" /> На главную
+            <CaretLeftIcon weight="bold" className="mt-0.5" /> На главную
           </Link>
 
           <h1 className="text-3xl title mt-3">Магазин</h1>
           <p className="mt-1 text-muted-foreground">
             Обменивайте Вторнички на предметы. Выдача происходит в игре
             автоматически.
+          </p>
+
+          <p className="mt-1 text-sm text-amber-400 max-w-xl">
+            Если товар не выдался автоматически, подождите пока Администрация
+            подтвердит покупку или обратитесь за помощью.
           </p>
         </div>
 
@@ -53,7 +73,7 @@ export default async function ShopPage() {
               Ваш баланс
             </span>
             <span className="text-xl tabular-nums">
-              {formatNumber(balance, true)} {formatСurrency(balance, true)}
+              {formatNumber(balance, true)} {formatCurrency(balance, true)}
             </span>
           </Link>
         )}
@@ -107,7 +127,7 @@ export default async function ShopPage() {
                   <p className="text-2xl tabular-nums font-semibold">
                     {formatNumber(item.price)}{" "}
                     <span className="text-muted-foreground font-normal text-lg">
-                      {formatСurrency(item.price)}
+                      {formatCurrency(item.price)}
                     </span>
                   </p>
 

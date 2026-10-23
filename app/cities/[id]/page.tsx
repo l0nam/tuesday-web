@@ -41,8 +41,7 @@ import {
   listResidents,
 } from "@/lib/cities/queries";
 import { CITY, CITY_ROLE_TITLES } from "@/lib/cities/rules";
-import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
-import { formatAgo, pluralRu } from "@/lib/profile/stats";
+import { formatNumber, formatCurrency, pluralRu, formatAgo } from "@/lib/utils/formatting";
 
 export const metadata: Metadata = { title: "Город" };
 
@@ -336,7 +335,7 @@ async function CityContent({ params }: Props) {
                     <CardDescription>
                       Когда в городе станет {CITY.rewardMinMembers} жителей, вы{" "}
                       получите {formatNumber(CITY.rewardAmount)}{" "}
-                      {formatСurrency(CITY.rewardAmount)}. Осталось пригласить:{" "}
+                      {formatCurrency(CITY.rewardAmount)}. Осталось пригласить:{" "}
                       {rewardLeft}
                     </CardDescription>
                   </CardHeader>

@@ -2,9 +2,19 @@ import { and, asc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db, withTransaction } from "@/lib/db";
 import { player, shopItem, shopOrder } from "@/lib/db/schema";
 import { formatUuid } from "@/lib/minecraft/uuid";
-import { credit, debit, InsufficientFundsError, insertId } from "@/lib/economy/wallet";
+import {
+  credit,
+  debit,
+  InsufficientFundsError,
+  insertId,
+} from "@/lib/economy/wallet";
 
-export type ShopErrorCode = "not_linked" | "not_found" | "disabled" | "out_of_stock" | "insufficient_funds";
+export type ShopErrorCode =
+  | "not_linked"
+  | "not_found"
+  | "disabled"
+  | "out_of_stock"
+  | "insufficient_funds";
 
 export class ShopError extends Error {
   constructor(
@@ -53,16 +63,26 @@ export async function purchaseItem(userId: string, itemId: number) {
         .where(eq(player.userId, userId))
         .limit(1);
       if (!buyer?.mcUuid) {
-        throw new ShopError("not_linked", "Привяжите Discord к игровому аккаунту, чтобы пользоваться магазином", 409);
+        throw new ShopError(
+          "not_linked",
+          "Привяжите Discord к игровому аккаунту, чтобы пользоваться магазином",
+          409,
+        );
       }
 
       // Порядок блокировок везде одинаковый: товар -> игрок
-      const [item] = await tx.select().from(shopItem).where(eq(shopItem.id, itemId)).for("update");
+      const [item] = await tx
+        .select()
+        .from(shopItem)
+        .where(eq(shopItem.id, itemId))
+        .for("update");
       if (!item) throw new ShopError("not_found", "Товар не найден", 404);
-      if (!item.enabled || item.price < 1) throw new ShopError("disabled", "Товар сейчас недоступен", 410);
+      if (!item.enabled || item.price < 1)
+        throw new ShopError("disabled", "Товар сейчас недоступен", 410);
 
       if (item.stock !== null) {
-        if (item.stock <= 0) throw new ShopError("out_of_stock", "Товар закончился", 409);
+        if (item.stock <= 0)
+          throw new ShopError("out_of_stock", "Товар закончился", 409);
         await tx
           .update(shopItem)
           .set({ stock: item.stock - 1 })
@@ -77,6 +97,7 @@ export async function purchaseItem(userId: string, itemId: number) {
         mcName: buyer.mcName,
         price: item.price,
         commands: item.commands,
+        fulfillmentMode: item.fulfillmentMode,
         status: "pending",
       });
       const orderId = insertId(inserted);
@@ -94,10 +115,15 @@ export async function purchaseItem(userId: string, itemId: number) {
     });
   } catch (error) {
     if (error instanceof InsufficientFundsError) {
-      throw new ShopError("insufficient_funds", "Недостаточно Вторничков", 402, {
-        balance: error.balance,
-        required: error.required,
-      });
+      throw new ShopError(
+        "insufficient_funds",
+        "Недостаточно Вторничков",
+        402,
+        {
+          balance: error.balance,
+          required: error.required,
+        },
+      );
     }
     throw error;
   }
@@ -125,11 +151,18 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
       .select()
       .from(shopOrder)
       .where(
-        or(
-          eq(shopOrder.status, "pending"),
-          and(eq(shopOrder.status, "processing"), lt(shopOrder.claimedAt, leaseCutoff)),
+        and(
+          eq(shopOrder.fulfillmentMode, "auto"),
+          or(
+            eq(shopOrder.status, "pending"),
+            and(
+              eq(shopOrder.status, "processing"),
+              lt(shopOrder.claimedAt, leaseCutoff),
+            ),
+          ),
         ),
       )
+
       .orderBy(asc(shopOrder.id))
       .limit(limit)
       .for("update", { skipLocked: true });
@@ -164,22 +197,38 @@ export type CompleteResult = "ok" | "already" | "not_found" | "conflict";
  *  - failed: заказ закрыт, Вторнички возвращаются на баланс, остаток товара восстанавливается.
  * Повторное сообщение с тем же итогом безопасно ("already").
  */
-export async function completeOrder(orderId: number, outcome: "delivered" | "failed", reason?: string): Promise<CompleteResult> {
+export async function completeOrder(
+  orderId: number,
+  outcome: "delivered" | "failed",
+  reason?: string,
+): Promise<CompleteResult> {
   return withTransaction(async (tx) => {
-    const [order] = await tx.select().from(shopOrder).where(eq(shopOrder.id, orderId)).for("update");
+    const [order] = await tx
+      .select()
+      .from(shopOrder)
+      .where(eq(shopOrder.id, orderId))
+      .for("update");
     if (!order) return "not_found";
     if (order.status === outcome) return "already";
-    if (order.status === "delivered" || order.status === "failed") return "conflict";
+    if (order.status === "delivered" || order.status === "failed")
+      return "conflict";
 
     const now = new Date();
     if (outcome === "delivered") {
-      await tx.update(shopOrder).set({ status: "delivered", completedAt: now }).where(eq(shopOrder.id, orderId));
+      await tx
+        .update(shopOrder)
+        .set({ status: "delivered", completedAt: now })
+        .where(eq(shopOrder.id, orderId));
       return "ok";
     }
 
     await tx
       .update(shopOrder)
-      .set({ status: "failed", failReason: reason?.slice(0, 255) ?? null, completedAt: now })
+      .set({
+        status: "failed",
+        failReason: reason?.slice(0, 255) ?? null,
+        completedAt: now,
+      })
       .where(eq(shopOrder.id, orderId));
 
     // Вернуть товар на склад (только если у него вообще есть учёт остатка)

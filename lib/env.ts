@@ -5,7 +5,9 @@ import { z } from "zod";
  * поэтому `next build` не падает, если секреты на сборке не заданы.
  */
 
-const identifier = z.string().regex(/^[A-Za-z0-9_]{1,64}$/, "только латиница, цифры и _");
+const identifier = z
+  .string()
+  .regex(/^[A-Za-z0-9_]{1,64}$/, "только латиница, цифры и _");
 
 // false - без TLS, true - TLS с проверкой сертификата, no-verify - TLS без проверки (самоподписанный сертификат)
 const sslMode = z.enum(["false", "true", "no-verify"]);
@@ -23,13 +25,17 @@ const schema = z.object({
   DISCORDSRV_UUID_COLUMN: identifier.default("uuid"),
 
   // Better Auth + Discord OAuth
-  BETTER_AUTH_SECRET: z.string().min(32, "минимум 32 символа (openssl rand -base64 32)"),
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, "минимум 32 символа (openssl rand -base64 32)"),
   BETTER_AUTH_URL: z.url(),
   DISCORD_CLIENT_ID: z.string().min(1),
   DISCORD_CLIENT_SECRET: z.string().min(1),
 
   // Общий секрет для подписи запросов от плагина (HMAC-SHA256)
-  PLUGIN_API_SECRET: z.string().min(32, "минимум 32 символа (openssl rand -hex 32)"),
+  PLUGIN_API_SECRET: z
+    .string()
+    .min(32, "минимум 32 символа (openssl rand -hex 32)"),
 
   // Часовой пояс сайта: по нему считаются «сегодня», дни стрика и тепловая карта
   SITE_TIMEZONE: z
@@ -63,10 +69,14 @@ export function getEnv(): Env {
   if (cached) return cached;
 
   // Пустые значения (KEY=) считаем незаданными
-  const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined && v !== ""));
+  const raw = Object.fromEntries(
+    Object.entries(process.env).filter(([, v]) => v !== undefined && v !== ""),
+  );
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    throw new Error(`Некорректные переменные окружения:\n${z.prettifyError(parsed.error)}`);
+    throw new Error(
+      `Некорректные переменные окружения:\n${z.prettifyError(parsed.error)}`,
+    );
   }
   cached = parsed.data;
   return cached;

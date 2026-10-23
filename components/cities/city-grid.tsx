@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PlayerHead } from "@/components/player/player-head";
 import { BannerView } from "@/components/cities/banner";
 import type { Banner } from "@/lib/cities/banner";
-import { pluralRu } from "@/lib/profile/stats";
+import { pluralRu } from "@/lib/utils/formatting";
 
 export interface CityCardData {
   id: number;

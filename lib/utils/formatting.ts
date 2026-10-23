@@ -1,6 +1,6 @@
 import { siteTimezone } from "./time";
 
-export function formatСurrency(n: number, short?: boolean) {
+export function formatCurrency(n: number, short?: boolean) {
   if (short) return "Вт.";
 
   const abs = Math.abs(Math.trunc(n));
@@ -45,8 +45,11 @@ export function formatNumber(value: number, short = false): string {
   return `${formatted}${unit.suffix}`;
 }
 
-export function formatDate(date: Date) {
+export function formatDate(value: string | Date | null) {
+  if (!value) return "—";
+
   const tz = siteTimezone();
+  const date = value instanceof Date ? value : new Date(value);
 
   return date.toLocaleDateString("ru-RU", {
     timeZone: tz,
@@ -54,4 +57,34 @@ export function formatDate(date: Date) {
     month: "long",
     year: "numeric",
   });
+}
+
+export function formatAgo(from: Date, now: Date = new Date()): string {
+  const rtf = new Intl.RelativeTimeFormat("ru", { numeric: "auto" });
+  const seconds = Math.max(
+    0,
+    Math.round((now.getTime() - from.getTime()) / 1000),
+  );
+  if (seconds < 60) return "только что";
+  if (seconds < 3600) return rtf.format(-Math.floor(seconds / 60), "minute");
+  if (seconds < 86_400) return rtf.format(-Math.floor(seconds / 3600), "hour");
+  return rtf.format(-Math.floor(seconds / 86_400), "day");
+}
+
+export function formatHours(seconds: number): string {
+  return (seconds / 3600).toFixed(1);
+}
+
+export function pluralRu(
+  n: number,
+  one: string,
+  few: string,
+  many: string,
+): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
 }

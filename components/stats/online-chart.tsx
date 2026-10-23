@@ -8,8 +8,8 @@ import {
   type PointerEvent,
 } from "react";
 import { cn } from "cn";
-import { pluralRu } from "@/lib/profile/stats";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { pluralRu } from "@/lib/utils/formatting";
 
 export interface ChartPoint {
   t: number;

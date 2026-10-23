@@ -12,9 +12,7 @@ import {
 } from "../ui/breadcrumb";
 import { PlayerHead } from "./player-head";
 import { notFound } from "next/navigation";
-import { siteTimezone } from "@/lib/utils/time";
 import { cn } from "cn";
-import { formatAgo, formatHours, pluralRu } from "@/lib/profile/stats";
 import { SkinViewer } from "./skin-viewer";
 import {
   BuildingsIcon,
@@ -29,13 +27,22 @@ import { DiscordVisibilityToggle } from "./discord-visibility-toggle";
 import { CITY_ROLE_LABELS, DONATE_TIERS, PROFILE } from "@/lib/profile/config";
 import Link from "next/link";
 import { buttonVariants } from "../ui/button";
-import { formatNumber, formatСurrency } from "@/lib/utils/formatting";
+import {
+  formatNumber,
+  formatCurrency,
+  formatAgo,
+  formatHours,
+  pluralRu,
+  formatDate,
+} from "@/lib/utils/formatting";
 import { BioEditor } from "./bio-editor";
 import { Markdown } from "../markdown";
 import { Heatmap } from "./heatmap";
 import { Suspense } from "react";
 import { BannerView } from "../cities/banner";
 import { Icon } from "@phosphor-icons/react";
+import { ReviewForm } from "../review-form";
+import { getOwnReview } from "@/lib/reviews/config";
 
 async function viewerId(): Promise<string | null> {
   try {
@@ -157,14 +164,6 @@ async function PlayerContent({
   if (!profile) notFound();
 
   const { stats, city, donate, isSelf } = profile;
-  const tz = siteTimezone();
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString("ru-RU", {
-      timeZone: tz,
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
 
   const renderHeader = (showFace: boolean) => (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -220,6 +219,8 @@ async function PlayerContent({
       )}
     </header>
   );
+
+  const ownReview = await getOwnReview(String((await getSession())?.user.id));
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
@@ -367,7 +368,7 @@ async function PlayerContent({
                   <>
                     <p className="text-xl tabular-nums">
                       {formatNumber(profile.balance)}{" "}
-                      {formatСurrency(profile.balance)}
+                      {formatCurrency(profile.balance)}
                     </p>
                     <Link
                       href="/shop"
@@ -384,6 +385,8 @@ async function PlayerContent({
               </CardContent>
             </Card>
           )}
+
+          {isSelf && <ReviewForm initialReview={ownReview} />}
         </aside>
 
         {/* ------------------------------ правая колонка ------------------------------ */}

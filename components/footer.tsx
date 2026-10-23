@@ -12,6 +12,8 @@ const SERVER_LINKS: FooterLink[] = [
   { label: "Главная", href: "/" },
   { label: "Статистика", href: "/stats" },
   { label: "Города", href: "/cities" },
+  { label: "Магазин", href: "/shop" },
+  { label: "Отзывы", href: "/reviews" },
 ];
 
 const INFO_LINKS: FooterLink[] = [

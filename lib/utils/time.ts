@@ -1,22 +1,23 @@
-import { getEnv } from "@/lib/env";
-
-/**
- * Работа с календарными днями в часовом поясе сайта (SITE_TIMEZONE).
- * «День» везде это строка YYYY-MM-DD.
- */
-
 export function siteTimezone(): string {
-  return getEnv().SITE_TIMEZONE;
+  return process.env.SITE_TIMEZONE || "Europe/Moscow";
 }
 
 /** Календарный день момента времени в часовом поясе сайта. */
 export function dayKey(date: Date, timeZone: string = siteTimezone()): string {
   // Локаль en-CA форматирует дату как YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 /** Сколько секунд прошло с полуночи (в часовом поясе сайта) до указанного момента. */
-export function secondsSinceMidnight(date: Date, timeZone: string = siteTimezone()): number {
+export function secondsSinceMidnight(
+  date: Date,
+  timeZone: string = siteTimezone(),
+): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone,
     hour: "2-digit",
@@ -24,7 +25,8 @@ export function secondsSinceMidnight(date: Date, timeZone: string = siteTimezone
     second: "2-digit",
     hourCycle: "h23",
   }).formatToParts(date);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
   return get("hour") * 3600 + get("minute") * 60 + get("second");
 }
 

@@ -29,6 +29,13 @@
       "when": 1792446059239,
       "tag": "0003_online_samples",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792698785134,
+      "tag": "0004_smiling_sugar_man",
+      "breakpoints": true
     }
   ]
 }

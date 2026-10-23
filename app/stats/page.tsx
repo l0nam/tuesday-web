@@ -22,8 +22,8 @@ import {
   type PlayersQuery,
 } from "@/lib/stats/filters";
 import { listPlayers } from "@/lib/stats/players";
-import { pluralRu } from "@/lib/profile/stats";
 import { siteTimezone } from "@/lib/utils/time";
+import { pluralRu } from "@/lib/utils/formatting";
 
 export const metadata: Metadata = {
   title: "Статистика",

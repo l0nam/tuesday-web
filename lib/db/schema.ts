@@ -400,12 +400,11 @@ export const shopItem = mysqlTable("shop_item", {
   description: text("description"),
   imageUrl: varchar("image_url", { length: 255 }),
   price: int("price", { unsigned: true }).notNull(),
-  /**
-   * Команды консоли, которые плагин выполнит при выдаче.
-   * Плейсхолдеры: {player} (ник), {uuid} (UUID с дефисами). Пример: ["give {player} minecraft:diamond 16"]
-   */
   commands: json("commands").$type<string[]>().notNull(),
-  /** NULL = без ограничения */
+  fulfillmentMode: varchar("fulfillment_mode", { length: 16 })
+    .$type<"auto" | "manual">()
+    .notNull()
+    .default("auto"),
   stock: int("stock", { unsigned: true }),
   enabled: boolean("enabled").notNull().default(true),
   sortOrder: int("sort_order").notNull().default(0),
@@ -437,12 +436,15 @@ export const shopOrder = mysqlTable(
     mcUuid: char("mc_uuid", { length: 32 }).notNull(),
     mcName: varchar("mc_name", { length: 32 }),
     price: int("price", { unsigned: true }).notNull(),
-    /** Снимок команд на момент покупки (цена и команды товара могут измениться позже) */
     commands: json("commands").$type<string[]>().notNull(),
     status: varchar("status", { length: 16 })
       .$type<OrderStatus>()
       .notNull()
       .default("pending"),
+    fulfillmentMode: varchar("fulfillment_mode", { length: 16 })
+      .$type<"auto" | "manual">()
+      .notNull()
+      .default("auto"),
     failReason: varchar("fail_reason", { length: 255 }),
     createdAt: createdAt(),
     claimedAt: ts("claimed_at"),
@@ -454,6 +456,89 @@ export const shopOrder = mysqlTable(
   ],
 );
 
+export const serverReview = mysqlTable(
+  "server_review",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    text: varchar("text", { length: 500 }).notNull(),
+    rating: int("rating", { unsigned: true }).notNull().default(5),
+    createdAt: createdAt(),
+  },
+  (t) => [index("server_review_created_idx").on(t.createdAt)],
+);
+
+export const adminRole = mysqlTable(
+  "admin_role",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    /** Actual Discord role ID; never key permissions by a translated label. */
+    discordRoleId: varchar("discord_role_id", { length: 32 }).notNull(),
+    label: varchar("label", { length: 64 }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("admin_role_discord_uidx").on(t.discordRoleId)],
+);
+
+export const adminRolePermission = mysqlTable(
+  "admin_role_permission",
+  {
+    roleId: int("role_id", { unsigned: true })
+      .notNull()
+      .references(() => adminRole.id, { onDelete: "cascade" }),
+    permission: varchar("permission", { length: 64 }).notNull(),
+    allowed: boolean("allowed").notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.roleId, t.permission] }),
+    index("admin_role_permission_key_idx").on(t.permission),
+  ],
+);
+
+export const adminAudit = mysqlTable(
+  "admin_audit",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
+    actorUserId: varchar("actor_user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetUserId: varchar("target_user_id", { length: 36 }).references(
+      () => user.id,
+      { onDelete: "set null" },
+    ),
+    action: varchar("action", { length: 80 }).notNull(),
+    meta: json("meta").$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("admin_audit_created_idx").on(t.createdAt),
+    index("admin_audit_target_idx").on(t.targetUserId),
+  ],
+);
+
+export const adminReviewBlock = mysqlTable("admin_review_block", {
+  /** A user can have one active review-submission block at a time. */
+  userId: varchar("user_id", { length: 36 })
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  blockedBy: varchar("blocked_by", { length: 36 })
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  reason: varchar("reason", { length: 240 }),
+  createdAt: createdAt(),
+});
+
 export type Player = typeof player.$inferSelect;
 export type ShopItem = typeof shopItem.$inferSelect;
 export type ShopOrder = typeof shopOrder.$inferSelect;
+export type ServerReview = typeof serverReview.$inferSelect;

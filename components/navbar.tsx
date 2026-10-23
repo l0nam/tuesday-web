@@ -22,6 +22,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   BookIcon,
   BuildingsIcon,
+  ShoppingBagIcon,
   TrendUpIcon,
   UserIcon,
   WalletIcon,
@@ -39,11 +40,13 @@ import { DoorIcon } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/auth-client";
 import { formatNumber } from "@/lib/utils/formatting";
 import { LINKS } from "@/lib/data";
+import { label } from "motion/react-client";
 
 const NAV_LINKS = [
   { icon: BookIcon, label: "Вики", href: LINKS["wiki"].link },
   { icon: TrendUpIcon, label: "Статистика", href: "/stats" },
   { icon: BuildingsIcon, label: "Города", href: "/cities" },
+  { icon: ShoppingBagIcon, label: "Магазин", href: "/shop" },
 ];
 
 const ENTER_DELAY = 2.4;

@@ -38,12 +38,8 @@ function CitiesFallback() {
 }
 
 async function CitiesContent() {
-  let userId: string | null = null;
-  try {
-    userId = (await getSession())?.user.id ?? null;
-  } catch (error) {
-    console.error("[cities] не удалось получить сессию:", error);
-  }
+  const session = await getSession();
+  const userId = session?.user.id ?? null;
 
   const [cities, membership] = await Promise.all([
     listCities(),

@@ -1,0 +1,2 @@
+export const SERVER_REVIEW_MIN_LENGTH = 30;
+export const SERVER_REVIEW_MAX_LENGTH = 250;

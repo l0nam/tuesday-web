@@ -1,5 +1,5 @@
 import type { HeatCell, HeatLevel } from "@/lib/profile/stats";
-import { formatHours } from "@/lib/profile/stats";
+import { formatHours } from "@/lib/utils/formatting";
 import { cn } from "cn";
 
 const LEVEL_CLASS: Record<HeatLevel, string> = {

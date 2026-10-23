@@ -79,12 +79,13 @@ export function StatsCounters() {
         {STATS.map((stat) => (
           <div
             key={stat.label}
-            className="flex flex-col-reverse gap-2 bg-card px-6 py-8 sm:px-8 sm:py-10"
+            className="flex flex-col-reverse justify-end gap-2 bg-card px-6 py-8 sm:px-8 sm:py-10"
           >
-            <dt className="text-sm text-muted-foreground sm:text-base">
+            <dt className="text-xs text-muted-foreground sm:text-base">
               {stat.label}
             </dt>
-            <dd className="title text-4xl sm:text-5xl">
+
+            <dd className="title text-3xl sm:text-5xl">
               <CountUp
                 value={stat.value}
                 from={stat.from}

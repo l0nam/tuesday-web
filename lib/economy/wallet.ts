@@ -1,6 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
 import { db, withTransaction, type Tx } from "@/lib/db";
-import { ledger, pendingReward, player, type LedgerType } from "@/lib/db/schema";
+import {
+  ledger,
+  pendingReward,
+  player,
+  type LedgerType,
+} from "@/lib/db/schema";
 
 /**
  * Единственное место, где меняется баланс.
@@ -49,7 +54,9 @@ export function affectedRows(result: unknown): number {
 /** AUTO_INCREMENT id вставленной строки из результата INSERT (mysql2). */
 export function insertId(result: unknown): number {
   const header = Array.isArray(result) ? result[0] : result;
-  return Number((header as { insertId?: number | string } | undefined)?.insertId ?? 0);
+  return Number(
+    (header as { insertId?: number | string } | undefined)?.insertId ?? 0,
+  );
 }
 
 async function lockPlayer(tx: Tx, userId: string) {
@@ -63,7 +70,10 @@ async function lockPlayer(tx: Tx, userId: string) {
 }
 
 /** Начисление. applied=false, если операция с таким ключом уже была выполнена. */
-export async function credit(tx: Tx, op: MoneyOp): Promise<{ applied: boolean; balance: number }> {
+export async function credit(
+  tx: Tx,
+  op: MoneyOp,
+): Promise<{ applied: boolean; balance: number }> {
   assertPositiveInt(op.amount);
   const locked = await lockPlayer(tx, op.userId);
 
@@ -94,7 +104,8 @@ export async function credit(tx: Tx, op: MoneyOp): Promise<{ applied: boolean; b
 export async function debit(tx: Tx, op: MoneyOp): Promise<{ balance: number }> {
   assertPositiveInt(op.amount);
   const locked = await lockPlayer(tx, op.userId);
-  if (locked.balance < op.amount) throw new InsufficientFundsError(locked.balance, op.amount);
+  if (locked.balance < op.amount)
+    throw new InsufficientFundsError(locked.balance, op.amount);
 
   const balance = locked.balance - op.amount;
   await tx.update(player).set({ balance }).where(eq(player.userId, op.userId));
@@ -135,10 +146,17 @@ export type GrantResult =
  *
  * Если результат "pending", после коммита вызовите claimIfLinked(mcUuid).
  */
-export async function grantRewardTx(tx: Tx, g: RewardGrant): Promise<GrantResult> {
+export async function grantRewardTx(
+  tx: Tx,
+  g: RewardGrant,
+): Promise<GrantResult> {
   assertPositiveInt(g.amount);
 
-  const [owner] = await tx.select({ userId: player.userId }).from(player).where(eq(player.mcUuid, g.mcUuid)).limit(1);
+  const [owner] = await tx
+    .select({ userId: player.userId })
+    .from(player)
+    .where(eq(player.mcUuid, g.mcUuid))
+    .limit(1);
 
   if (owner) {
     const r = await credit(tx, {
@@ -149,7 +167,9 @@ export async function grantRewardTx(tx: Tx, g: RewardGrant): Promise<GrantResult
       idempotencyKey: g.idempotencyKey,
       meta: g.meta,
     });
-    return r.applied ? { status: "credited", amount: g.amount, balance: r.balance } : { status: "duplicate" };
+    return r.applied
+      ? { status: "credited", amount: g.amount, balance: r.balance }
+      : { status: "duplicate" };
   }
 
   const inserted = await tx
@@ -163,7 +183,9 @@ export async function grantRewardTx(tx: Tx, g: RewardGrant): Promise<GrantResult
       idempotencyKey: g.idempotencyKey,
       meta: g.meta ?? null,
     });
-  return affectedRows(inserted) > 0 ? { status: "pending", amount: g.amount } : { status: "duplicate" };
+  return affectedRows(inserted) > 0
+    ? { status: "pending", amount: g.amount }
+    : { status: "duplicate" };
 }
 
 /**
@@ -171,7 +193,11 @@ export async function grantRewardTx(tx: Tx, g: RewardGrant): Promise<GrantResult
  * Подбираем такую награду сразу, а не ждём следующей синхронизации.
  */
 export async function claimIfLinked(mcUuid: string): Promise<void> {
-  const [owner] = await db.select({ userId: player.userId }).from(player).where(eq(player.mcUuid, mcUuid)).limit(1);
+  const [owner] = await db
+    .select({ userId: player.userId })
+    .from(player)
+    .where(eq(player.mcUuid, mcUuid))
+    .limit(1);
   if (owner) await claimPendingRewards(owner.userId, mcUuid);
 }
 
@@ -205,7 +231,11 @@ export async function claimPendingRewards(
         type: r.type,
         ref: r.ref ?? undefined,
         idempotencyKey: r.idempotencyKey,
-        meta: { ...(r.meta ?? {}), deferred: true, earnedAt: r.createdAt.toISOString() },
+        meta: {
+          ...(r.meta ?? {}),
+          deferred: true,
+          earnedAt: r.createdAt.toISOString(),
+        },
       });
       if (res.applied) {
         count += 1;
