@@ -28,7 +28,7 @@
 - `drizzle/` вместе с SQL-миграциями и `drizzle/meta/`;
 - `package.json` и **`package-lock.json`**;
 - `next.config.ts`, `tsconfig.json`, `drizzle.config.ts`, `components.json`, `eslint.config.mjs`, `instrumentation.ts`;
-- `README.md` и `.env.example` (если он приложен к архиву).
+- `README.md` и `.env.example`.
 
 Не передавать `.env`, `.env.local`, пароли БД, Discord Client Secret, токен бота, `BETTER_AUTH_SECRET`, `PLUGIN_API_SECRET`, дампы БД с личными данными, `node_modules/`, `.next/` и `.vercel/`. Секреты заказчик должен создать/получить самостоятельно и добавить непосредственно в настройки своего хостинга.
 
