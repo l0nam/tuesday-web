@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne, or, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withTransaction } from "@/lib/db";
 import { playtimeProgress, player } from "@/lib/db/schema";
@@ -150,7 +150,10 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
         .update(player)
         .set({ mcName: event.name })
         .where(
-          and(eq(player.mcUuid, event.uuid), ne(player.mcName, event.name)),
+          and(
+            eq(player.mcUuid, event.uuid),
+            or(isNull(player.mcName), ne(player.mcName, event.name)),
+          ),
         );
     } catch (error) {
       console.error("[plugin] не удалось сохранить ник:", error);
