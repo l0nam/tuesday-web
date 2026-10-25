@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db, withTransaction } from "@/lib/db";
-import { player, shopItem, shopOrder } from "@/lib/db/schema";
+import { mcProfile, player, shopItem, shopOrder } from "@/lib/db/schema";
 import {
   credit,
   debit,
@@ -14,7 +14,8 @@ export type ShopErrorCode =
   | "not_found"
   | "disabled"
   | "out_of_stock"
-  | "insufficient_funds";
+  | "insufficient_funds"
+  | "player_name_unavailable";
 
 export class ShopError extends Error {
   constructor(
@@ -62,6 +63,34 @@ export async function purchaseItem(userId: string, itemId: number) {
         );
       }
 
+      // Offline-mode servers use UUIDs that Mojang cannot resolve to names.
+      // Prefer the name captured from server events, and never create an order
+      // whose console commands would contain an empty {player} placeholder.
+      let mcName = buyer.mcName;
+      if (!mcName) {
+        const [knownProfile] = await tx
+          .select({ name: mcProfile.name })
+          .from(mcProfile)
+          .where(eq(mcProfile.mcUuid, buyer.mcUuid))
+          .limit(1);
+        mcName = knownProfile?.name ?? null;
+      }
+
+      if (!mcName) {
+        throw new ShopError(
+          "player_name_unavailable",
+          "Ник Minecraft пока не удалось определить. Зайдите на основной сервер и дождитесь синхронизации профиля, затем повторите покупку.",
+          409,
+        );
+      }
+
+      if (!buyer.mcName) {
+        await tx
+          .update(player)
+          .set({ mcName })
+          .where(eq(player.userId, userId));
+      }
+
       const [item] = await tx
         .select()
         .from(shopItem)
@@ -85,7 +114,7 @@ export async function purchaseItem(userId: string, itemId: number) {
         itemId: item.id,
         itemName: item.name,
         mcUuid: buyer.mcUuid,
-        mcName: buyer.mcName,
+        mcName,
         price: item.price,
         commands: item.commands,
         fulfillmentMode: item.fulfillmentMode,
