@@ -37,7 +37,7 @@ export function CreateCityForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!banner) {
-      setError("Соберите флаг города");
+      setError("Соберите флаг клана");
       return;
     }
     const created = await call<{ id: number }>("/api/cities", "POST", {
@@ -48,7 +48,7 @@ export function CreateCityForm() {
       recruiting,
     });
     if (created?.id) {
-      router.push(`/cities/${created.id}`);
+      router.push(`/clans/${created.id}`);
       router.refresh();
     }
   }
@@ -64,7 +64,7 @@ export function CreateCityForm() {
           <p className="max-w-4xl">
             <b>Название и флаг изменить нельзя</b>, их выбирают один раз при
             создании. Описание, Discord-сервер и набор можно менять в любой
-            момент. Один игрок может создать только один город.
+            момент. Один игрок может создать только один клан.
           </p>
 
           <Button
@@ -81,7 +81,7 @@ export function CreateCityForm() {
       <FieldSet>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="city-name">Название города</FieldLabel>
+            <FieldLabel htmlFor="city-name">Название клана</FieldLabel>
             <Input
               id="city-name"
               value={name}
@@ -98,7 +98,7 @@ export function CreateCityForm() {
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="city-name">Флаг города</FieldLabel>
+            <FieldLabel htmlFor="city-name">Флаг клана</FieldLabel>
             <BannerField value={banner} onChange={setBanner} />
           </Field>
 
@@ -111,7 +111,7 @@ export function CreateCityForm() {
               maxLength={CITY.descriptionMax}
               rows={4}
               className="max-h-60"
-              placeholder="Кратко расскажите о своем городе"
+              placeholder="Кратко расскажите о своем клане"
             />
             <FieldDescription>
               {Array.from(description).length} / {CITY.descriptionMax}
@@ -120,7 +120,7 @@ export function CreateCityForm() {
 
           <Field>
             <FieldLabel htmlFor="city-discord">
-              Discord сервер города (необязательно)
+              Discord сервер клана (необязательно)
             </FieldLabel>
             <Input
               id="city-discord"
@@ -160,7 +160,7 @@ export function CreateCityForm() {
             <Spinner /> Создаю…
           </>
         ) : (
-          "Создать город"
+          "Создать клан"
         )}
       </Button>
     </form>

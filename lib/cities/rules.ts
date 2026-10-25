@@ -72,5 +72,5 @@ export function normalizeDiscordUrl(
 export const CITY_ROLE_TITLES = {
   owner: "Владелец",
   coowner: "Совладелец",
-  member: "Житель",
+  member: "Участник",
 } as const;

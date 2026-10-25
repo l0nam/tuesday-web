@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   },
 
   description:
-    "Играй на Tuesday — Minecraft-сервере с городами, экономикой и сообществом игроков. Создавай свою историю и развивайся вместе с другими.",
+    "Играй на Tuesday — Minecraft-сервере с кланами, экономикой и сообществом игроков. Создавай свою историю и развивайся вместе с другими.",
 
   applicationName: "Tuesday",
   category: "games",
@@ -71,14 +71,14 @@ export const metadata: Metadata = {
     siteName: "Tuesday",
     title: "Tuesday — Minecraft-сервер",
     description:
-      "Города, экономика и сообщество игроков. Заходи на Tuesday и начинай свою историю.",
+      "Кланы, экономика и сообщество игроков. Заходи на Tuesday и начинай свою историю.",
   },
 
   twitter: {
     card: "summary",
     title: "Tuesday — Minecraft-сервер",
     description:
-      "Города, экономика и сообщество игроков. Начни свою историю на Tuesday.",
+      "Кланы, экономика и сообщество игроков. Начни свою историю на Tuesday.",
   },
 
   robots: {

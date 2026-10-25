@@ -36,7 +36,7 @@ export async function POST(
         {
           error: {
             code: "applicant_unavailable",
-            message: "Игрок уже вступил в другой город, заявка закрыта",
+            message: "Игрок уже вступил в другой клан, заявка закрыта",
           },
         },
         409,

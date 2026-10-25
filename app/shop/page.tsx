@@ -54,8 +54,8 @@ async function ShopContent() {
 
           <h1 className="text-3xl title mt-3">Магазин</h1>
           <p className="mt-1 text-muted-foreground">
-            Обменивайте Вторнички на предметы. Выдача происходит в игре
-            автоматически.
+            Обменивайте Вторнички на предметы. Большинство товаров выдаётся
+            автоматически, некоторые требуют подтверждения администрации.
           </p>
 
           <p className="mt-1 text-sm text-amber-400 max-w-xl">

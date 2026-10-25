@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: found ? `${found.name}: профиль игрока` : "Игрок не найден",
     description: found
-      ? `Профиль игрока ${found.name} на сервере Tuesday: статистика, город и описание.`
+      ? `Профиль игрока ${found.name} на сервере Tuesday: статистика, клан и описание.`
       : undefined,
   };
 }

@@ -124,7 +124,7 @@ export async function createCity(
   if (!owner.mcUuid) {
     throw new CityError(
       "not_linked",
-      "Чтобы создать город, привяжите Discord к игровому аккаунту (раздел «Профиль»)",
+      "Чтобы создать клан, привяжите Discord к игровому аккаунту (раздел «Профиль»)",
       403,
     );
   }
@@ -139,7 +139,7 @@ export async function createCity(
       if (membership)
         throw new CityError(
           "already_in_city",
-          "Вы уже состоите в городе. Сначала покиньте его",
+          "Вы уже состоите в клане. Сначала покиньте его",
           409,
         );
 
@@ -152,7 +152,7 @@ export async function createCity(
       if (taken)
         throw new CityError(
           "name_taken",
-          "Город с таким названием уже есть",
+          "Клан с таким названием уже есть",
           409,
         );
 
@@ -185,12 +185,12 @@ export async function createCity(
       if (dup.includes("name_key"))
         throw new CityError(
           "name_taken",
-          "Город с таким названием уже есть",
+          "Клан с таким названием уже есть",
           409,
         );
       if (dup.includes("owner_id"))
-        throw new CityError("already_owner", "Вы уже создали город", 409);
-      throw new CityError("already_in_city", "Вы уже состоите в городе", 409);
+        throw new CityError("already_owner", "Вы уже создали клан", 409);
+      throw new CityError("already_in_city", "Вы уже состоите в клане", 409);
     }
     throw error;
   }
@@ -230,11 +230,11 @@ export async function updateCitySettings(
     .from(city)
     .where(eq(city.id, cityId))
     .limit(1);
-  if (!row) throw new CityError("not_found", "Город не найден", 404);
+  if (!row) throw new CityError("not_found", "Клан не найден", 404);
   if (row.ownerId !== userId)
     throw new CityError(
       "forbidden",
-      "Настройки города может менять только владелец",
+      "Настройки клана может менять только владелец",
       403,
     );
 
@@ -258,11 +258,11 @@ export async function applyToCity(
       .from(city)
       .where(eq(city.id, cityId))
       .limit(1);
-    if (!target) throw new CityError("not_found", "Город не найден", 404);
+    if (!target) throw new CityError("not_found", "Клан не найден", 404);
     if (!target.recruiting)
       throw new CityError(
         "recruiting_closed",
-        "Набор в этот город сейчас закрыт",
+        "Набор в этот клан сейчас закрыт",
         409,
       );
 
@@ -275,8 +275,8 @@ export async function applyToCity(
       throw new CityError(
         membership.cityId === cityId ? "already_member" : "already_in_city",
         membership.cityId === cityId
-          ? "Вы уже живёте в этом городе"
-          : "Вы уже состоите в другом городе. Сначала покиньте его",
+          ? "Вы уже состоите в этом клане"
+          : "Вы уже состоите в другом клане. Сначала покиньте его",
         409,
       );
     }
@@ -304,7 +304,7 @@ export async function applyToCity(
         const hours = Math.ceil(waitMs / 3_600_000);
         throw new CityError(
           "cooldown",
-          `Повторную заявку в этот город можно подать примерно через ${hours} ч.`,
+          `Повторную заявку в этот клан можно подать примерно через ${hours} ч.`,
           429,
         );
       }
@@ -412,13 +412,13 @@ export async function reviewApplication(
       .from(city)
       .where(eq(city.id, cityId))
       .for("update");
-    if (!target) throw new CityError("not_found", "Город не найден", 404);
+    if (!target) throw new CityError("not_found", "Клан не найден", 404);
 
     const reviewer = await memberRole(tx, cityId, reviewerId);
     if (reviewer !== "owner" && reviewer !== "coowner") {
       throw new CityError(
         "forbidden",
-        "Заявки рассматривают владелец и совладельцы города",
+        "Заявки рассматривают владелец и совладельцы клана",
         403,
       );
     }
@@ -438,7 +438,7 @@ export async function reviewApplication(
     if (application.status === "cancelled") {
       throw new CityError(
         "application_closed",
-        "Заявка закрыта: игрок отозвал её или уже вступил в другой город",
+        "Заявка закрыта: игрок отозвал её или уже вступил в другой клан",
         409,
       );
     }
@@ -539,7 +539,7 @@ export async function setMemberRole(
       .from(city)
       .where(eq(city.id, cityId))
       .for("update");
-    if (!target) throw new CityError("not_found", "Город не найден", 404);
+    if (!target) throw new CityError("not_found", "Клан не найден", 404);
     if (target.ownerId !== actorId)
       throw new CityError(
         "forbidden",
@@ -551,7 +551,7 @@ export async function setMemberRole(
     if (!current)
       throw new CityError(
         "not_found",
-        "Этот игрок не живёт в вашем городе",
+        "Этот игрок не состоит в вашем клане",
         404,
       );
     if (current === "owner")
@@ -574,7 +574,7 @@ export async function removeMember(
   if (actorId === targetUserId)
     throw new CityError(
       "bad_request",
-      "Чтобы уйти из города, используйте кнопку «Покинуть город»",
+      "Чтобы покинуть клан, используйте кнопку «Покинуть клан»",
     );
 
   await inTransaction(async (tx) => {
@@ -583,13 +583,13 @@ export async function removeMember(
       .from(city)
       .where(eq(city.id, cityId))
       .for("update");
-    if (!target) throw new CityError("not_found", "Город не найден", 404);
+    if (!target) throw new CityError("not_found", "Клан не найден", 404);
 
     const actor = await memberRole(tx, cityId, actorId);
     if (actor !== "owner" && actor !== "coowner") {
       throw new CityError(
         "forbidden",
-        "Исключать жителей могут владелец и совладельцы",
+        "Исключать участников могут владелец и совладельцы",
         403,
       );
     }
@@ -598,7 +598,7 @@ export async function removeMember(
     if (!role)
       throw new CityError(
         "not_found",
-        "Этот игрок не живёт в вашем городе",
+        "Этот игрок не состоит в вашем клане",
         404,
       );
     if (role === "owner")
@@ -623,11 +623,11 @@ export async function leaveCity(userId: string, cityId: number): Promise<void> {
   await inTransaction(async (tx) => {
     const role = await memberRole(tx, cityId, userId);
     if (!role)
-      throw new CityError("not_found", "Вы не живёте в этом городе", 404);
+      throw new CityError("not_found", "Вы не состоите в этом клане", 404);
     if (role === "owner")
       throw new CityError(
         "forbidden",
-        "Владелец не может покинуть свой город",
+        "Владелец не может покинуть свой клан",
         403,
       );
     await tx

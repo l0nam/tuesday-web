@@ -280,7 +280,7 @@ async function PlayerContent({
             </Card>
           ) : null}
 
-          {/* Город */}
+          {/* Клан */}
           <Card>
             <CardHeader>
               <CardTitle className="inline-flex gap-2 items-center">
@@ -291,7 +291,7 @@ async function PlayerContent({
                   />
                 </span>
 
-                <span>Город</span>
+                <span>Клан</span>
               </CardTitle>
             </CardHeader>
 
@@ -315,7 +315,7 @@ async function PlayerContent({
                           ? (CITY_ROLE_LABELS[city.role] ?? city.role)
                           : null,
                         city.members != null
-                          ? `${city.members} ${pluralRu(city.members, "житель", "жителя", "жителей")}`
+                          ? `${city.members} ${pluralRu(city.members, "участник", "участника", "участников")}`
                           : null,
                       ]
                         .filter(Boolean)
@@ -326,7 +326,7 @@ async function PlayerContent({
                     <BannerView
                       banner={city.banner}
                       className="w-12"
-                      label={`Флаг города ${city.name}`}
+                      label={`Флаг клана ${city.name}`}
                     />
                   )}
                 </div>
@@ -334,8 +334,8 @@ async function PlayerContent({
                 <>
                   <p className="text-muted-foreground">
                     {isSelf
-                      ? "Вы пока не состоите в городе."
-                      : "Не состоит в городе."}
+                      ? "Вы пока не состоите в клане."
+                      : "Не состоит в клане."}
                   </p>
 
                   {isSelf && (
@@ -343,7 +343,7 @@ async function PlayerContent({
                       href="/cities"
                       className={cn(buttonVariants({ variant: "default" }))}
                     >
-                      Найти город
+                      Найти клан
                     </Link>
                   )}
                 </>

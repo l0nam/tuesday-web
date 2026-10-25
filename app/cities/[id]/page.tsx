@@ -48,7 +48,7 @@ import {
   formatAgo,
 } from "@/lib/utils/formatting";
 
-export const metadata: Metadata = { title: "Город" };
+export const metadata: Metadata = { title: "Клан" };
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -141,7 +141,7 @@ async function CityContent({ params }: Props) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/cities">Города</BreadcrumbLink>
+            <BreadcrumbLink href="/clans">Кланы</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem className="font-medium text-foreground">
@@ -155,7 +155,7 @@ async function CityContent({ params }: Props) {
           <BannerView
             banner={city.banner}
             className="w-24 sm:w-28"
-            label={`Флаг города ${city.name}`}
+            label={`Флаг клана ${city.name}`}
           />
 
           <div className="min-w-0 flex-1 space-y-4">
@@ -168,7 +168,7 @@ async function CityContent({ params }: Props) {
                   <UsersIcon weight="bold" className="size-4" />
                   <span className="tabular-nums">
                     {city.members}{" "}
-                    {pluralRu(city.members, "житель", "жителя", "жителей")}
+                    {pluralRu(city.members, "участник", "участника", "участников")}
                   </span>
                 </span>
 
@@ -195,7 +195,7 @@ async function CityContent({ params }: Props) {
                   weight="fill"
                   className="size-5 text-indigo-400"
                 />
-                Сервер города
+                Discord клана
                 <LinkIcon weight="bold" />
               </Link>
             )}
@@ -234,7 +234,7 @@ async function CityContent({ params }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Жители</CardTitle>
+              <CardTitle className="text-xl">Участники</CardTitle>
             </CardHeader>
 
             <CardContent>
@@ -305,7 +305,7 @@ async function CityContent({ params }: Props) {
             <CardHeader>
               <CardTitle className="text-xl">
                 {viewer.kind === "member" || viewer.kind === "owner"
-                  ? "Ваш город"
+                  ? "Ваш клан"
                   : "Вступление"}
               </CardTitle>
             </CardHeader>
@@ -318,7 +318,7 @@ async function CityContent({ params }: Props) {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">Управление городом</CardTitle>
+                  <CardTitle className="text-xl">Управление кланом</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CitySettings
@@ -338,7 +338,7 @@ async function CityContent({ params }: Props) {
                     </CardTitle>
 
                     <CardDescription>
-                      Когда в городе станет {CITY.rewardMinMembers} жителей, вы{" "}
+                      Когда в клане станет {CITY.rewardMinMembers} участников, вы{" "}
                       получите {formatNumber(CITY.rewardAmount)}{" "}
                       {formatCurrency(CITY.rewardAmount)}. Осталось пригласить:{" "}
                       {rewardLeft}

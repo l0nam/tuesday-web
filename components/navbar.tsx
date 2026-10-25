@@ -45,7 +45,7 @@ import { LINKS } from "@/lib/data";
 const NAV_LINKS = [
   { icon: BookIcon, label: "Вики", href: LINKS["wiki"].link },
   { icon: TrendUpIcon, label: "Статистика", href: "/stats" },
-  { icon: BuildingsIcon, label: "Города", href: "/cities" },
+  { icon: BuildingsIcon, label: "Кланы", href: "/clans" },
   { icon: ShoppingBagIcon, label: "Магазин", href: "/shop" },
 ];
 

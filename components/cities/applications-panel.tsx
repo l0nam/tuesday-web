@@ -40,7 +40,7 @@ function ApplicationRow({
     if (!res) return;
     if (res.rewardGranted)
       onNotice(
-        `В городе набралось ${CITY.rewardMinMembers} жителей: владелец получил ${CITY.rewardAmount} Вторничков.`,
+        `В клане стало ${CITY.rewardMinMembers} участников: владелец получил ${CITY.rewardAmount} Вторничков.`,
       );
     refresh();
   }

@@ -45,5 +45,5 @@ export type RoleTone = (typeof ROLE_BADGES)[number]["tone"];
 export const CITY_ROLE_LABELS: Record<string, string> = {
   owner: "Владелец",
   coowner: "Совладелец",
-  member: "Житель",
+  member: "Участник",
 };

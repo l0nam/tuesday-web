@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [{ source: "/clans/:path*", destination: "/cities/:path*" }];
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

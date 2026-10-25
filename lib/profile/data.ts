@@ -146,7 +146,7 @@ export async function loadProfile(
           name: siteCity.name,
           role: siteCity.role,
           members: siteCity.members,
-          href: `/cities/${siteCity.id}`,
+          href: `/clans/${siteCity.id}`,
           banner: siteCity.banner,
         }
       : cityRow

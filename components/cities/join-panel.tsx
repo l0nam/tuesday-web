@@ -55,16 +55,16 @@ export function JoinPanel({
       return (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Войдите через Discord, чтобы подать заявку в город.
+            Войдите через Discord, чтобы подать заявку в клан.
           </p>
-          <SignInButton callbackURL={`/cities/${cityId}`} />
+          <SignInButton callbackURL={`/clans/${cityId}`} />
         </div>
       );
 
     case "owner":
       return (
         <p className="text-sm text-muted-foreground">
-          Вы владелец этого города. Заявки и настройки находятся на этой
+          Вы владелец этого клана. Заявки и настройки находятся на этой
           странице.
         </p>
       );
@@ -73,12 +73,12 @@ export function JoinPanel({
       return (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Вы живёте в этом городе.
+            Вы состоите в этом клане.
           </p>
           {confirmLeave ? (
             <div className="space-y-2">
               <p className="text-sm">
-                Точно покинуть город? Вернуться можно будет только по новой
+                Точно покинуть клан? Вернуться можно будет только по новой
                 заявке.
               </p>
               <div className="flex gap-2">
@@ -100,7 +100,7 @@ export function JoinPanel({
             </div>
           ) : (
             <Button variant="destructive" onClick={() => setConfirmLeave(true)}>
-              Покинуть город
+              Покинуть клан
             </Button>
           )}
           <ErrorNote message={error} />
@@ -110,8 +110,8 @@ export function JoinPanel({
     case "elsewhere":
       return (
         <p className="text-sm text-muted-foreground">
-          Вы уже состоите в городе{" "}
-          <Link href={`/cities/${viewer.cityId}`} className="link">
+          Вы уже состоите в клане{" "}
+          <Link href={`/clans/${viewer.cityId}`} className="link">
             {viewer.cityName}
           </Link>
           . Чтобы вступить сюда, сначала покиньте его.
@@ -125,7 +125,7 @@ export function JoinPanel({
         return (
           <div className="space-y-3">
             <p className="text-sm">
-              <b>Заявка отправлена.</b> Владелец или совладельцы города скоро её
+              <b>Заявка отправлена.</b> Владелец или совладельцы клана скоро её
               рассмотрят.
             </p>
             <Button
@@ -184,7 +184,7 @@ export function JoinPanel({
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Набор в этот город сейчас закрыт.
+              Набор в этот клан сейчас закрыт.
             </p>
           )}
           <ErrorNote message={error} />

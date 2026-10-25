@@ -9,8 +9,8 @@ import { getSession } from "@/lib/auth/session";
 import { getMembership, listCities } from "@/lib/cities/queries";
 
 export const metadata: Metadata = {
-  title: "Города",
-  description: "Города сервера Tuesday: найдите свой или создайте новый.",
+  title: "Кланы",
+  description: "Кланы сервера Tuesday: найдите свой или создайте новый.",
 };
 
 export default function CitiesPage() {
@@ -50,28 +50,28 @@ async function CitiesContent() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <h1 className="title text-4xl sm:text-5xl">Города</h1>
+          <h1 className="title text-4xl sm:text-5xl">Кланы</h1>
           <p className="mt-3 text-pretty text-muted-foreground">
-            Сообщества игроков Tuesday. Подайте заявку в открытый город или
-            создайте свой: у каждого игрока может быть один город.
+            Сообщества игроков Tuesday. Подайте заявку в открытый клан или
+            создайте свой: у каждого игрока может быть один клан.
           </p>
         </div>
 
         {membership ? (
           <Link
-            href={`/cities/${membership.cityId}`}
+            href={`/clans/${membership.cityId}`}
             className={cn(buttonVariants({ size: "lg" }))}
           >
             <BuildingsIcon weight="bold" />
-            Мой город: {membership.cityName}
+            Мой клан: {membership.cityName}
           </Link>
         ) : (
           <Link
-            href="/cities/new"
+            href="/clans/new"
             className={cn(buttonVariants({ size: "lg" }))}
           >
             <PlusIcon weight="bold" />
-            Создать город
+            Создать клан
           </Link>
         )}
       </header>

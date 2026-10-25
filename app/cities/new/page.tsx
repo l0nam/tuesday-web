@@ -17,7 +17,7 @@ import { getSession } from "@/lib/auth/session";
 import { getMembership } from "@/lib/cities/queries";
 import { getPlayer, syncLink } from "@/lib/player";
 
-export const metadata: Metadata = { title: "Создать город" };
+export const metadata: Metadata = { title: "Создать клан" };
 
 export default function NewCityPage() {
   return (
@@ -29,11 +29,11 @@ export default function NewCityPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/cities">Города</BreadcrumbLink>
+            <BreadcrumbLink href="/clans">Кланы</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem className="font-medium text-foreground">
-            Создать город
+            Создать клан
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -73,8 +73,8 @@ async function NewCityContent() {
 
   if (!session) {
     return (
-      <Notice action={<SignInButton callbackURL="/cities/new" />}>
-        Войдите через Discord, чтобы создать город.
+      <Notice action={<SignInButton callbackURL="/clans/new" />}>
+        Войдите через Discord, чтобы создать клан.
       </Notice>
     );
   }
@@ -86,15 +86,15 @@ async function NewCityContent() {
       <Notice
         action={
           <Link
-            href={`/cities/${membership.cityId}`}
+            href={`/clans/${membership.cityId}`}
             className={cn(buttonVariants())}
           >
-            Перейти в город
+            Перейти в клан
           </Link>
         }
       >
-        Вы уже состоите в городе «{membership.cityName}». Игрок может жить
-        только в одном городе и создать только один.
+        Вы уже состоите в клане «{membership.cityName}». Игрок может состоять
+        только в одном клане и создать только один.
       </Notice>
     );
   }
@@ -110,8 +110,8 @@ async function NewCityContent() {
           </Link>
         }
       >
-        Чтобы создать город, привяжите Discord к игровому аккаунту: владелец
-        города получает награду и отображается по игровому нику.
+        Чтобы создать клан, привяжите Discord к игровому аккаунту: владелец
+        клана получает награду и отображается по игровому нику.
       </Notice>
     );
   }

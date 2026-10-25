@@ -4,7 +4,7 @@ import { cn } from "cn";
 export function BannerView({
   banner,
   className,
-  label = "Флаг города",
+  label = "Флаг клана",
 }: {
   banner: Banner;
   className?: string;

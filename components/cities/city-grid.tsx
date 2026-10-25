@@ -54,7 +54,7 @@ export function RecruitingBadge({
 function CityCard({ city }: { city: CityCardData }) {
   return (
     <Link
-      href={`/cities/${city.id}`}
+      href={`/clans/${city.id}`}
       className="group block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
     >
       <Card className="h-full transition group-hover:ring-primary/40">
@@ -82,7 +82,7 @@ function CityCard({ city }: { city: CityCardData }) {
                 <span className="size-1.5 bg-foreground/60" />
                 <span className="tabular-nums">
                   {city.members}{" "}
-                  {pluralRu(city.members, "житель", "жителя", "жителей")}
+                  {pluralRu(city.members, "участник", "участника", "участников")}
                 </span>
               </li>
               {city.hasDiscord && (
@@ -100,7 +100,7 @@ function CityCard({ city }: { city: CityCardData }) {
           <BannerView
             banner={city.banner}
             className="w-20 transition group-hover:-translate-y-0.5"
-            label={`Флаг города ${city.name}`}
+            label={`Флаг клана ${city.name}`}
           />
         </div>
       </Card>
@@ -130,7 +130,7 @@ export function CityGrid({ cities }: { cities: CityCardData[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по названию, владельцу или описанию..."
-          aria-label="Поиск городов"
+          aria-label="Поиск кланов"
           className="h-12 pl-9"
         />
       </div>
@@ -138,7 +138,7 @@ export function CityGrid({ cities }: { cities: CityCardData[] }) {
       {visible.length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">
           {cities.length === 0
-            ? "Городов пока нет. Станьте первым: создайте свой."
+            ? "Кланов пока нет. Станьте первым: создайте свой."
             : "Ничего не найдено."}
         </p>
       ) : (
