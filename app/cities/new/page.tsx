@@ -38,7 +38,7 @@ export default function NewCityPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="title text-4xl">Создать город</h1>
+      <h1 className="title text-4xl">Создать клан</h1>
 
       <Suspense
         fallback={

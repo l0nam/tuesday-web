@@ -181,7 +181,7 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
       if (event.members < REWARDS.city.minMembers) {
         return {
           status: "ignored",
-          reason: `в городе меньше ${REWARDS.city.minMembers} человек`,
+          reason: `в клане меньше ${REWARDS.city.minMembers} участников`,
         };
       }
       const result = await withTransaction((tx) =>

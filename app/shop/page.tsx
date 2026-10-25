@@ -16,6 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Suspense } from "react";
+import { cn } from "cn";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Магазин" };
 
@@ -80,20 +82,20 @@ async function ShopContent() {
       </header>
 
       {!session && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5">
           <p className="text-sm">Войдите через Discord, чтобы покупать.</p>
           <SignInButton callbackURL="/shop" />
         </div>
       )}
 
       {session && !linked && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border  bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5">
           <p className="text-sm">
             Чтобы покупать, привяжите Discord к игровому аккаунту.
           </p>
           <Link
             href="/profile"
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            className={cn(buttonVariants({ variant: "default" }))}
           >
             Как привязать
           </Link>

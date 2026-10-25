@@ -11,7 +11,7 @@ type FooterLink = { label: string; href: string };
 const SERVER_LINKS: FooterLink[] = [
   { label: "Главная", href: "/" },
   { label: "Статистика", href: "/stats" },
-  { label: "Города", href: "/cities" },
+  { label: "Кланы", href: "/cities" },
   { label: "Магазин", href: "/shop" },
   { label: "Отзывы", href: "/reviews" },
 ];

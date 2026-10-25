@@ -52,7 +52,7 @@ type PlayersTabProps = {
 
 const LEDGER_LABELS: Record<string, string> = {
   achievement: "Достижение",
-  city: "Город",
+  city: "Клан",
   playtime: "Игровое время",
   activity: "Активность",
   shop_purchase: "Покупка в магазине",
@@ -77,7 +77,7 @@ function formatLedgerRef(ref: string | null, type: string) {
       case "achievement":
         return "Награда за достижение";
       case "city":
-        return "Городская активность";
+        return "Клановая активность";
       case "playtime":
         return "Игровое время";
       case "activity":

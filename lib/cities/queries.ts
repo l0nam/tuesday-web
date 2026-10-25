@@ -251,7 +251,7 @@ export interface UserCity {
   banner: Banner;
 }
 
-/** Город игрока для профиля. */
+/** Клан игрока для профиля. */
 export async function getCityForUser(userId: string): Promise<UserCity | null> {
   const [row] = await db
     .select({
