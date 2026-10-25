@@ -132,12 +132,20 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
   const leaseCutoff = new Date(Date.now() - ORDER_LEASE_MS);
 
   return withTransaction(async (tx) => {
+    // fulfillmentMode/commands are copied into shop_order at purchase time.
+    // If a pending order was created before its shop item was switched to auto,
+    // the snapshot is stale. Use the current shop-item settings for unclaimed
+    // orders, while keeping items that are still configured as manual excluded.
     const rows = await tx
-      .select()
+      .select({
+        order: shopOrder,
+        currentCommands: shopItem.commands,
+      })
       .from(shopOrder)
+      .innerJoin(shopItem, eq(shopOrder.itemId, shopItem.id))
       .where(
         and(
-          eq(shopOrder.fulfillmentMode, "auto"),
+          eq(shopItem.fulfillmentMode, "auto"),
           or(
             eq(shopOrder.status, "pending"),
             and(
@@ -147,29 +155,31 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
           ),
         ),
       )
-
       .orderBy(asc(shopOrder.id))
       .limit(limit)
       .for("update", { skipLocked: true });
 
     if (rows.length === 0) return [];
 
-    await tx
-      .update(shopOrder)
-      .set({ status: "processing", claimedAt: new Date() })
-      .where(
-        inArray(
-          shopOrder.id,
-          rows.map((r) => r.id),
-        ),
-      );
+    const claimedAt = new Date();
+    for (const row of rows) {
+      await tx
+        .update(shopOrder)
+        .set({
+          status: "processing",
+          claimedAt,
+          fulfillmentMode: "auto",
+          commands: row.currentCommands,
+        })
+        .where(eq(shopOrder.id, row.order.id));
+    }
 
-    return rows.map((r) => ({
-      id: r.id,
-      uuid: formatUuid(r.mcUuid),
-      player: r.mcName,
-      item: r.itemName,
-      commands: r.commands,
+    return rows.map(({ order, currentCommands }) => ({
+      id: order.id,
+      uuid: formatUuid(order.mcUuid),
+      player: order.mcName,
+      item: order.itemName,
+      commands: currentCommands,
     }));
   });
 }
