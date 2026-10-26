@@ -75,16 +75,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
   const encodedName = encodeURIComponent(username);
   const storedSkin = await getStoredSkinUrl(username);
-  const candidates = [
-    ...(storedSkin ? [storedSkin] : []),
-    // These endpoints work for normal online-mode accounts; the plugin stores the actual
-    // textures.minecraft.net URL for SkinsRestorer/offline-mode skins.
-    `https://crafthead.net/skin/${encodedName}`,
-    `https://mc-heads.net/skin/${encodedName}`,
-    `https://crafthead.net/skin/MHF_Steve`,
-    `https://mc-heads.net/skin/MHF_Steve`,
-  ];
-
   // Prefer the stored textures.minecraft.net URL for SkinsRestorer/offline skins.
   if (storedSkin) {
     const storedImage = await proxySkin(storedSkin);
