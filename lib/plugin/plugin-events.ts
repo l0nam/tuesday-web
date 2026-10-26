@@ -41,13 +41,19 @@ const keyField = z
   .max(100)
   .regex(/^[\w.:\/\-]+$/, "допустимы буквы, цифры и . _ : / -");
 
+const achievementTierInput = z.union([
+  z.enum(ACHIEVEMENT_TIERS),
+  // Old 1.2.0 queues used these names; map them to the current TASK category.
+  z.enum(["normal", "gold"]).transform(() => "task" as const),
+]);
+
 const achievementEvent = z.object({
   type: z.literal("achievement"),
   uuid: uuidField,
   name: nameField,
   // Minecraft namespaced keys may contain a slash, e.g. minecraft:story/mine_diamond.
   achievementId: keyField,
-  tier: z.enum(ACHIEVEMENT_TIERS).optional(),
+  tier: achievementTierInput.optional(),
   // Legacy compatibility; the site maps these to task, goal or challenge.
   difficulty: z.enum(ACHIEVEMENT_DIFFICULTIES).optional(),
 });
