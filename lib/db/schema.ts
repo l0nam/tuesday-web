@@ -226,12 +226,16 @@ export const playerDiscord = mysqlTable("player_discord", {
   updatedAt: updatedAt(),
 });
 
-export const playerDonate = mysqlTable("player_donate", {
-  mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
-  tier: varchar("tier", { length: 32 }).notNull(),
-  expiresAt: ts("expires_at"),
-  updatedAt: updatedAt(),
-});
+export const playerDonate = mysqlTable(
+  "player_donate",
+  {
+    mcUuid: char("mc_uuid", { length: 32 }).notNull(),
+    tier: varchar("tier", { length: 32 }).notNull(),
+    expiresAt: ts("expires_at"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.mcUuid, t.tier] })],
+);
 
 export const playerCity = mysqlTable("player_city", {
   mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
