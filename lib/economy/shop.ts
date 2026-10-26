@@ -29,26 +29,26 @@ export class ShopError extends Error {
   }
 }
 
-export /**
+/**
  * Older shop_item rows may still contain a LuckPerms addtemp command without
  * the accumulate modifier. Normalize it at purchase/claim time so stale DB
  * commands cannot silently shorten an existing temporary rank.
  */
 function normalizeLuckPermsAccumulate(commands: string[]): string[] {
   return commands.map((command) => {
-    const normalized = command.trim().replace(/\\s+/g, " ");
-    if (!/^lp\\s+user\\s+\\S+\\s+parent\\s+addtemp\\s+\\S+\\s+\\S+/i.test(normalized)) {
+    const normalized = command.trim().replace(/\s+/g, " ");
+    if (!/^lp\s+user\s+\S+\s+parent\s+addtemp\s+\S+\s+\S+/i.test(normalized)) {
       return command;
     }
 
     const args = normalized
       .split(" ")
       .filter((part) => part.toLowerCase() !== "accumulate");
-    return `${args.join(" ")} accumulate`;
+    return args.join(" ") + " accumulate";
   });
 }
 
-const ORDER_LEASE_MS = 5 * 60_000;
+export const ORDER_LEASE_MS = 5 * 60_000;
 
 export async function listShopItems() {
   return db
