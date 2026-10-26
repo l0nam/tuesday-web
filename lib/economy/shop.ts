@@ -29,7 +29,26 @@ export class ShopError extends Error {
   }
 }
 
-export const ORDER_LEASE_MS = 5 * 60_000;
+export /**
+ * Older shop_item rows may still contain a LuckPerms addtemp command without
+ * the accumulate modifier. Normalize it at purchase/claim time so stale DB
+ * commands cannot silently shorten an existing temporary rank.
+ */
+function normalizeLuckPermsAccumulate(commands: string[]): string[] {
+  return commands.map((command) => {
+    const normalized = command.trim().replace(/\\s+/g, " ");
+    if (!/^lp\\s+user\\s+\\S+\\s+parent\\s+addtemp\\s+\\S+\\s+\\S+/i.test(normalized)) {
+      return command;
+    }
+
+    const args = normalized
+      .split(" ")
+      .filter((part) => part.toLowerCase() !== "accumulate");
+    return `${args.join(" ")} accumulate`;
+  });
+}
+
+const ORDER_LEASE_MS = 5 * 60_000;
 
 export async function listShopItems() {
   return db
@@ -116,7 +135,7 @@ export async function purchaseItem(userId: string, itemId: number) {
         mcUuid: buyer.mcUuid,
         mcName,
         price: item.price,
-        commands: item.commands,
+        commands: normalizeLuckPermsAccumulate(item.commands),
         fulfillmentMode: item.fulfillmentMode,
         status: "pending",
       });
@@ -191,7 +210,12 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
     if (rows.length === 0) return [];
 
     const claimedAt = new Date();
-    for (const row of rows) {
+    const normalizedRows = rows.map((row) => ({
+      ...row,
+      currentCommands: normalizeLuckPermsAccumulate(row.currentCommands),
+    }));
+
+    for (const row of normalizedRows) {
       await tx
         .update(shopOrder)
         .set({
@@ -203,7 +227,7 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
         .where(eq(shopOrder.id, row.order.id));
     }
 
-    return rows.map(({ order, currentCommands }) => ({
+    return normalizedRows.map(({ order, currentCommands }) => ({
       id: order.id,
       uuid: formatUuid(order.mcUuid),
       player: order.mcName,
