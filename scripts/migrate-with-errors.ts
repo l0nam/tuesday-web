@@ -13,6 +13,10 @@ async function main() {
     );
   }
 
+  const target = new URL(databaseUrl);
+  const databaseName = decodeURIComponent(target.pathname.replace(/^\/+/, ""));
+  console.log(`Migration target: ${target.hostname}/${databaseName}`);
+
   const connection = await mysql.createConnection(databaseUrl);
   try {
     console.log("Connected to the configured MySQL/MariaDB database.");
