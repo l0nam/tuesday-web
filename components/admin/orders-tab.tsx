@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { formatDate, formatNumber } from "@/lib/utils/formatting";
 import type { OrderRow } from "./types";
 import { Empty, Panel, Pill } from "./utils";
@@ -44,9 +45,16 @@ type OrdersTabProps = {
     order: OrderRow,
     status: EditableStatus,
   ) => Promise<void> | void;
+  onRefresh: () => Promise<void> | void;
+  refreshing: boolean;
 };
 
-export function OrdersTab({ orders, onStatusChange }: OrdersTabProps) {
+export function OrdersTab({
+  orders,
+  onStatusChange,
+  onRefresh,
+  refreshing,
+}: OrdersTabProps) {
   const [savingId, setSavingId] = useState<number | string | null>(null);
 
   async function changeStatus(order: OrderRow, value: string) {
@@ -64,6 +72,23 @@ export function OrdersTab({ orders, onStatusChange }: OrdersTabProps) {
 
   return (
     <Panel className="mt-6 p-0">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div>
+          <h2 className="font-medium">Заказы</h2>
+          <p className="text-xs text-muted-foreground">
+            Нажми, чтобы получить актуальные заказы и статусы.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={refreshing}
+          onClick={() => void onRefresh()}
+        >
+          {refreshing ? "Обновляем…" : "Обновить заказы"}
+        </Button>
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
