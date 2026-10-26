@@ -470,7 +470,11 @@ export async function processEvent(
           reason: `сумма custom-активности превышает лимит ${rewards.customActivityMax}`,
         };
       }
-      const configured = rewards.activity[event.activity];
+      const configured = Object.hasOwn(rewards.activity, event.activity)
+        ? rewards.activity[
+            event.activity as keyof typeof rewards.activity
+          ]
+        : undefined;
       let amount: number;
       if (event.activity === "custom") {
         if (event.amount === undefined) {
