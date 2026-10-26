@@ -4,7 +4,7 @@ import { onlineSample } from "@/lib/db/schema";
 import { SERVER_IP } from "@/lib/data";
 
 export const ONLINE = {
-  sampleMinutes: 10,
+  sampleMinutes: 5,
   checkEveryMinutes: 5,
   historyDays: 7,
 } as const;
