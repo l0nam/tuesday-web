@@ -15,7 +15,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp plus 30d"],
+    commands: ["lp user {player} parent addtemp plus 30d accumulate"],
     sortOrder: 100,
   },
   {
@@ -28,7 +28,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp plus 90d"],
+    commands: ["lp user {player} parent addtemp plus 90d accumulate"],
     sortOrder: 110,
   },
   {
@@ -41,7 +41,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp plus 365d"],
+    commands: ["lp user {player} parent addtemp plus 365d accumulate"],
     sortOrder: 120,
   },
   {
@@ -54,7 +54,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp gold 30d"],
+    commands: ["lp user {player} parent addtemp gold 30d accumulate"],
     sortOrder: 130,
   },
   {
@@ -67,7 +67,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp gold 90d"],
+    commands: ["lp user {player} parent addtemp gold 90d accumulate"],
     sortOrder: 140,
   },
   {
@@ -80,7 +80,7 @@ const items = [
     stock: null,
     enabled: true,
     fulfillmentMode: "auto" as const,
-    commands: ["lp user {player} parent addtemp gold 365d"],
+    commands: ["lp user {player} parent addtemp gold 365d accumulate"],
     sortOrder: 150,
   },
   {
