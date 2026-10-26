@@ -163,7 +163,7 @@ async function PlayerContent({
   const profile = await loadWithDiscord(name, await viewerId());
   if (!profile) notFound();
 
-  const { stats, city, donate, isSelf } = profile;
+  const { stats, city, donates, isSelf } = profile;
 
   const renderHeader = (showFace: boolean) => (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -423,17 +423,17 @@ async function PlayerContent({
             <CardContent>
               <ul className="divide-y divide-border">
                 {Object.entries(DONATE_TIERS).map(([key, tier]) => {
-                  const active = donate?.tier === key;
+                  const activeDonate = donates.find((item) => item.tier === key);
                   return (
                     <li
                       key={key}
                       className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                     >
                       <span className="text-lg font-semibold">{tier.name}</span>
-                      {active ? (
+                      {activeDonate ? (
                         <span className="rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-sm font-medium text-primary">
-                          {donate?.expiresAt
-                            ? `Активен до ${formatDate(donate.expiresAt)}`
+                          {activeDonate.expiresAt
+                            ? `Активен до ${formatDate(activeDonate.expiresAt)}`
                             : "Активен, бессрочно"}
                         </span>
                       ) : (
@@ -445,11 +445,14 @@ async function PlayerContent({
                   );
                 })}
               </ul>
-              {donate && !DONATE_TIERS[donate.tier] && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Также: {donate.name}
-                </p>
-              )}
+              {donates
+                .filter((item) => !DONATE_TIERS[item.tier])
+                .map((item) => (
+                  <p key={item.tier} className="mt-3 text-sm text-muted-foreground">
+                    Также: {item.name}
+                    {item.expiresAt ? ` (до ${formatDate(item.expiresAt)})` : ""}
+                  </p>
+                ))}
             </CardContent>
           </Card>
 
