@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { db, withTransaction } from "@/lib/db";
 import { mcProfile, player, shopItem, shopOrder } from "@/lib/db/schema";
 import {
@@ -219,8 +219,9 @@ export async function listPluginOrderRecords(
   view: PluginOrderListView,
   limit = 8,
   offset = 0,
+  excludedIds: number[] = [],
 ) {
-  const condition =
+  const baseCondition =
     view === "queue"
       ? and(
           eq(shopOrder.fulfillmentMode, "auto"),
@@ -233,6 +234,10 @@ export async function listPluginOrderRecords(
           eq(shopOrder.status, "delivered"),
           eq(shopOrder.status, "failed"),
         );
+  const condition =
+    view === "queue" && excludedIds.length > 0
+      ? and(baseCondition, notInArray(shopOrder.id, excludedIds))
+      : baseCondition;
 
   const [totalRow] = await db
     .select({ total: count() })
