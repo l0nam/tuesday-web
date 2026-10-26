@@ -113,12 +113,18 @@ export interface RewardGrant {
   ref?: string;
   idempotencyKey: string;
   meta?: Record<string, unknown>;
+  /**
+   * When true, never put a reward into pending_reward for an unlinked UUID.
+   * Used by signed Minecraft-plugin events.
+   */
+  requireLinked?: boolean;
 }
 
 export type GrantResult =
   | { status: "credited"; amount: number; balance: number }
   | { status: "pending"; amount: number }
-  | { status: "duplicate" };
+  | { status: "duplicate" }
+  | { status: "unlinked" };
 
 export async function grantRewardTx(
   tx: Tx,
@@ -145,6 +151,8 @@ export async function grantRewardTx(
       ? { status: "credited", amount: g.amount, balance: r.balance }
       : { status: "duplicate" };
   }
+
+  if (g.requireLinked) return { status: "unlinked" };
 
   const inserted = await tx
     .insert(pendingReward)
