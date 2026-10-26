@@ -472,14 +472,17 @@ export async function processEvent(
       }
       const configured = rewards.activity[event.activity];
       let amount: number;
-      if (event.amount !== undefined) {
+      if (event.activity === "custom") {
+        if (event.amount === undefined) {
+          return {
+            status: "invalid",
+            reason: 'для активности "custom" нужно поле amount',
+          };
+        }
         amount = event.amount;
-      } else if (event.activity === "custom") {
-        return {
-          status: "invalid",
-          reason: 'для активности "custom" нужно поле amount',
-        };
       } else if (configured !== undefined) {
+        // Fixed activity rewards are controlled by the admin config; the plugin
+        // cannot override them by sending an arbitrary amount.
         amount = configured;
       } else {
         return {
