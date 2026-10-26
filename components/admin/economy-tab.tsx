@@ -23,6 +23,12 @@ type EconomyResponse = {
 };
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const fallbackMessage =
+    method === "GET"
+      ? "Не удалось загрузить настройки"
+      : "Не удалось сохранить настройки";
+
   const response = await fetch(url, {
     ...init,
     cache: "no-store",
@@ -32,9 +38,26 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const data = await response.json().catch(() => null);
+
   if (!response.ok) {
-    throw new Error(data?.error?.message ?? "Не удалось сохранить настройки");
+    const apiMessage =
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      data.error &&
+      typeof data.error === "object" &&
+      "message" in data.error &&
+      typeof data.error.message === "string"
+        ? data.error.message
+        : null;
+
+    throw new Error(apiMessage || `${fallbackMessage} (HTTP ${response.status})`);
   }
+
+  if (data === null || typeof data !== "object") {
+    throw new Error(`Сервер вернул некорректный ответ (HTTP ${response.status})`);
+  }
+
   return data as T;
 }
 
