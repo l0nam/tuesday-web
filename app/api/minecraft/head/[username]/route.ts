@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mcProfile } from "@/lib/db/schema";
@@ -19,12 +19,21 @@ const TEXTURE_URL_REGEX =
 
 async function getStoredTextureId(username: string): Promise<string | null> {
   try {
-    const [profile] = await db
+    let [profile] = await db
       .select({ skinUrl: mcProfile.skinUrl })
       .from(mcProfile)
       .where(eq(mcProfile.name, username))
       .orderBy(desc(mcProfile.updatedAt))
       .limit(1);
+
+    if (!profile) {
+      [profile] = await db
+        .select({ skinUrl: mcProfile.skinUrl })
+        .from(mcProfile)
+        .where(sql`lower(${mcProfile.name}) = ${username.toLowerCase()}`)
+        .orderBy(desc(mcProfile.updatedAt))
+        .limit(1);
+    }
 
     const match = profile?.skinUrl?.match(TEXTURE_URL_REGEX);
     return match?.[1] ?? null;
@@ -38,7 +47,7 @@ async function proxyImage(url: string): Promise<Response | null> {
   try {
     const response = await fetch(url, {
       headers: { Accept: "image/png,image/*;q=0.9,*/*;q=0.5" },
-      signal: AbortSignal.timeout(2_500),
+      signal: AbortSignal.timeout(1_800),
       next: { revalidate: 300 },
     });
     const contentType = response.headers.get("content-type") ?? "";
@@ -93,10 +102,33 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     `https://mc-heads.net/avatar/MHF_Steve${sizeSuffix}`,
   ];
 
-  for (const url of candidates) {
-    const image = await proxyImage(url);
-    if (image) return image;
+  // The stored texture (offline/custom skins) gets priority. Avoid serial timeouts
+  // across multiple external providers: try public fallbacks concurrently.
+  if (textureId) {
+    const storedTextureImage = await proxyImage(
+      `https://mc-heads.net/avatar/${textureId}${sizeSuffix}`,
+    );
+    if (storedTextureImage) return storedTextureImage;
   }
+
+  const fallbackUrls = [
+    `https://crafthead.net/avatar/${encodedPlayer}${sizeSuffix}`,
+    `https://minotar.net/avatar/${encodedPlayer}${sizeSuffix}`,
+    `https://mc-heads.net/avatar/${encodedPlayer}${sizeSuffix}`,
+  ];
+  const fallbackResults = await Promise.all(fallbackUrls.map(proxyImage));
+  const fallbackImage = fallbackResults.find((image) => image !== null);
+  if (fallbackImage) return fallbackImage;
+
+  const defaultImage = await proxyImage(
+    `https://crafthead.net/avatar/MHF_Steve${sizeSuffix}`,
+  );
+  if (defaultImage) return defaultImage;
+
+  const lastDefaultImage = await proxyImage(
+    `https://mc-heads.net/avatar/MHF_Steve${sizeSuffix}`,
+  );
+  if (lastDefaultImage) return lastDefaultImage;
 
   return NextResponse.json(
     { error: "Не удалось загрузить голову игрока ни из одного источника" },
