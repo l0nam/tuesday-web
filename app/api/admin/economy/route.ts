@@ -10,7 +10,6 @@ import {
   REWARD_SETTING_KEY,
   toEditableRewardSettings,
   DEFAULT_REWARD_SETTINGS,
-  type EditableRewardSettings,
 } from "@/lib/economy/rewards/settings";
 import { errorResponse, jsonResponse } from "@/lib/utils/http";
 
@@ -123,11 +122,14 @@ export async function PATCH(req: Request) {
         .insert(appSetting)
         .values({
           key: REWARD_SETTING_KEY,
-          value: nextRewards,
+          value: nextRewards as unknown as Record<string, unknown>,
           updatedAt: new Date(),
         })
         .onDuplicateKeyUpdate({
-          set: { value: nextRewards, updatedAt: new Date() },
+          set: {
+            value: nextRewards as unknown as Record<string, unknown>,
+            updatedAt: new Date(),
+          },
         });
 
       await tx.insert(adminAudit).values({
@@ -136,7 +138,7 @@ export async function PATCH(req: Request) {
         meta: {
           priceChanges,
           rewardsBefore: toEditableRewardSettings(previousRewards),
-          rewardsAfter: rewards satisfies EditableRewardSettings,
+          rewardsAfter: rewards,
         },
       });
     });
