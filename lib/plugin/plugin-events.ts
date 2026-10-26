@@ -41,11 +41,7 @@ const keyField = z
   .max(100)
   .regex(/^[\w.:\/\-]+$/, "допустимы буквы, цифры и . _ : / -");
 
-const achievementTierInput = z.union([
-  z.enum(ACHIEVEMENT_TIERS),
-  // Old 1.2.0 queues used these names; map them to the current TASK category.
-  z.enum(["normal", "gold"]).transform(() => "task" as const),
-]);
+const achievementTierInput = z.enum(ACHIEVEMENT_TIERS);
 
 const achievementEvent = z.object({
   type: z.literal("achievement"),
