@@ -44,7 +44,7 @@ export interface ProfileData {
     href: string | null;
     banner: Banner | null;
   } | null;
-  donate: { tier: string; name: string; expiresAt: Date | null } | null;
+  donates: { tier: string; name: string; expiresAt: Date | null }[];
   hasAccount: boolean;
   balance: number | null;
   stats: {
@@ -93,7 +93,7 @@ export async function loadProfile(
   if (!found) return null;
   const { uuid } = found;
 
-  const [[statsRow], days, [donateRow], [cityRow], [playerRow], [discordRow]] =
+  const [[statsRow], days, donateRows, [cityRow], [playerRow], [discordRow]] =
     await Promise.all([
       db
         .select()
@@ -107,8 +107,7 @@ export async function loadProfile(
       db
         .select()
         .from(playerDonate)
-        .where(eq(playerDonate.mcUuid, uuid))
-        .limit(1),
+        .where(eq(playerDonate.mcUuid, uuid)),
       db.select().from(playerCity).where(eq(playerCity.mcUuid, uuid)).limit(1),
       db.select().from(player).where(eq(player.mcUuid, uuid)).limit(1),
       db
@@ -125,9 +124,13 @@ export async function loadProfile(
     viewerUserId && playerRow && playerRow.userId === viewerUserId,
   );
 
-  const donateActive =
-    donateRow &&
-    (!donateRow.expiresAt || donateRow.expiresAt.getTime() > now.getTime());
+  const activeDonates = donateRows
+    .filter((row) => !row.expiresAt || row.expiresAt.getTime() > now.getTime())
+    .map((row) => ({
+      tier: row.tier,
+      name: DONATE_TIERS[row.tier]?.name ?? row.tier,
+      expiresAt: row.expiresAt,
+    }));
 
   return {
     uuid,
@@ -159,13 +162,7 @@ export async function loadProfile(
             banner: null,
           }
         : null,
-    donate: donateActive
-      ? {
-          tier: donateRow.tier,
-          name: DONATE_TIERS[donateRow.tier]?.name ?? donateRow.tier,
-          expiresAt: donateRow.expiresAt,
-        }
-      : null,
+    donates: activeDonates,
     hasAccount: Boolean(playerRow),
     balance:
       playerRow && (PROFILE.balancePublic || isSelf) ? playerRow.balance : null,
