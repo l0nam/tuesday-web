@@ -187,6 +187,7 @@ export const mcProfile = mysqlTable(
   {
     mcUuid: char("mc_uuid", { length: 32 }).primaryKey(),
     name: varchar("name", { length: 32 }).notNull(),
+    skinUrl: varchar("skin_url", { length: 512 }),
     updatedAt: updatedAt(),
   },
   (t) => [index("mc_profile_name_idx").on(t.name)],
