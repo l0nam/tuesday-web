@@ -1,4 +1,7 @@
+import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { mcProfile } from "@/lib/db/schema";
 
 type RouteContext = {
   params: Promise<{
@@ -6,53 +9,69 @@ type RouteContext = {
   }>;
 };
 
+const NICKNAME_REGEX = /^[a-zA-Z0-9_]{1,16}$/;
+const TEXTURE_URL_REGEX =
+  /^https:\/\/textures\.minecraft\.net\/texture\/([a-f0-9]{32,128})$/i;
+const CACHE_CONTROL =
+  "public, max-age=300, s-maxage=300, stale-while-revalidate=600";
+
+async function getStoredSkinUrl(username: string): Promise<string | null> {
+  try {
+    const [profile] = await db
+      .select({ skinUrl: mcProfile.skinUrl })
+      .from(mcProfile)
+      .where(eq(mcProfile.name, username))
+      .orderBy(desc(mcProfile.updatedAt))
+      .limit(1);
+
+    const skinUrl = profile?.skinUrl ?? null;
+    return skinUrl && TEXTURE_URL_REGEX.test(skinUrl) ? skinUrl : null;
+  } catch (error) {
+    console.error("[minecraft/skin] не удалось получить текстуру из БД:", error);
+    return null;
+  }
+}
+
 export async function GET(_request: Request, { params }: RouteContext) {
   const { username } = await params;
 
-  if (!/^[a-zA-Z0-9_]{3,16}$/.test(username)) {
+  if (!NICKNAME_REGEX.test(username)) {
     return NextResponse.json(
       { error: "Некорректный ник Minecraft" },
       { status: 400 },
     );
   }
 
-  try {
-    const response = await fetch(
-      `https://mc-heads.net/skin/${encodeURIComponent(username)}`,
-      {
-        next: { revalidate: 3600 },
-      },
-    );
+  const storedSkin = await getStoredSkinUrl(username);
+  const candidates = [
+    ...(storedSkin ? [storedSkin] : []),
+    "https://mc-heads.net/skin/" + encodeURIComponent(username),
+    "https://mc-heads.net/skin/MHF_Steve",
+  ];
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Не удалось загрузить скин" },
-        { status: 404 },
-      );
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "image/png" },
+        next: { revalidate: 300 },
+      });
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!response.ok || !contentType.startsWith("image/")) continue;
+
+      return new Response(await response.arrayBuffer(), {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": CACHE_CONTROL,
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch {
+      // Try the next source. The last candidate is the default Steve skin.
     }
-
-    const contentType = response.headers.get("content-type") ?? "image/png";
-
-    if (!contentType.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "API вернуло неожиданный формат" },
-        { status: 502 },
-      );
-    }
-
-    const image = await response.arrayBuffer();
-
-    return new Response(image, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control":
-          "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
-      },
-    });
-  } catch {
-    return NextResponse.json(
-      { error: "Ошибка загрузки скина" },
-      { status: 502 },
-    );
   }
+
+  return NextResponse.json(
+    { error: "Не удалось загрузить текстуру скина" },
+    { status: 502 },
+  );
 }
