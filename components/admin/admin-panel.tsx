@@ -116,6 +116,7 @@ export function AdminPanel({ isAdmin }: { isAdmin: boolean }) {
   const [saving, setSaving] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<Record<string, boolean>>({});
   const [refreshingOverview, setRefreshingOverview] = useState(false);
+  const [refreshingOrders, setRefreshingOrders] = useState(false);
 
   const selectedRole =
     roles.find((role) => role.discordRoleId === selectedRoleId) ?? null;
@@ -136,6 +137,22 @@ export function AdminPanel({ isAdmin }: { isAdmin: boolean }) {
       );
     } finally {
       setRefreshingOverview(false);
+    }
+  }
+
+  async function refreshOrders() {
+    setRefreshingOrders(true);
+    setError(null);
+
+    try {
+      const result = await request<{ orders: OrderRow[] }>("/api/admin/orders");
+      setOrders(result.orders);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Не удалось обновить заказы",
+      );
+    } finally {
+      setRefreshingOrders(false);
     }
   }
 
@@ -458,9 +475,9 @@ export function AdminPanel({ isAdmin }: { isAdmin: boolean }) {
           <TabsContent value="orders">
             <OrdersTab
               orders={orders}
-              onStatusChange={(order, status) => {
-                void changeOrderStatus(order, status);
-              }}
+              refreshing={refreshingOrders}
+              onRefresh={refreshOrders}
+              onStatusChange={changeOrderStatus}
             />
           </TabsContent>
 
