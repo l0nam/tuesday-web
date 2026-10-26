@@ -240,7 +240,11 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     event.type === "city" ||
     event.type === "playtime" ||
     event.type === "activity";
-  if (rewardEvent && !(await isRegisteredLinkedUuid(event.uuid))) {
+  if (
+    rewardEvent &&
+    "uuid" in event &&
+    !(await isRegisteredLinkedUuid(event.uuid))
+  ) {
     return {
       status: "ignored",
       reason: "Minecraft-аккаунт не привязан к зарегистрированному профилю Tuesday",
