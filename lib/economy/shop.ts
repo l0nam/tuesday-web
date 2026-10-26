@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db, withTransaction } from "@/lib/db";
 import { mcProfile, player, shopItem, shopOrder } from "@/lib/db/schema";
 import {
@@ -211,6 +211,52 @@ export async function claimOrders(limit = 20): Promise<PluginOrder[]> {
       commands: currentCommands,
     }));
   });
+}
+
+export type PluginOrderListView = "queue" | "history";
+
+export async function listPluginOrderRecords(
+  view: PluginOrderListView,
+  limit = 8,
+  offset = 0,
+) {
+  const condition =
+    view === "queue"
+      ? and(
+          eq(shopOrder.fulfillmentMode, "auto"),
+          or(
+            eq(shopOrder.status, "pending"),
+            eq(shopOrder.status, "processing"),
+          ),
+        )
+      : or(
+          eq(shopOrder.status, "delivered"),
+          eq(shopOrder.status, "failed"),
+        );
+
+  const [totalRow] = await db
+    .select({ total: count() })
+    .from(shopOrder)
+    .where(condition);
+
+  const orders = await db
+    .select({
+      id: shopOrder.id,
+      item: shopOrder.itemName,
+      player: shopOrder.mcName,
+      status: shopOrder.status,
+      fulfillmentMode: shopOrder.fulfillmentMode,
+      failReason: shopOrder.failReason,
+      createdAt: shopOrder.createdAt,
+      completedAt: shopOrder.completedAt,
+    })
+    .from(shopOrder)
+    .where(condition)
+    .orderBy(desc(shopOrder.id))
+    .limit(limit)
+    .offset(offset);
+
+  return { orders, total: totalRow?.total ?? 0 };
 }
 
 export type CompleteResult = "ok" | "already" | "not_found" | "conflict";
