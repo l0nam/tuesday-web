@@ -12,8 +12,11 @@ import {
 } from "@/lib/profile/record";
 import {
   ACHIEVEMENT_DIFFICULTIES,
+  ACHIEVEMENT_TIERS,
   ACTIVITY_CODES,
   REWARDS,
+  type AchievementDifficulty,
+  type AchievementTier,
 } from "@/lib/economy/rewards/config";
 import {
   claimIfLinked,
@@ -72,6 +75,7 @@ const activityEvent = z.object({
   activity: z.string().regex(/^[a-z0-9_]{1,32}$/),
   eventId: keyField,
   amount: z.number().int().min(1).max(REWARDS.customActivityMax).optional(),
+  reason: z.string().trim().min(1).max(120).optional(),
 });
 
 const presenceEvent = z.object({
@@ -133,7 +137,37 @@ export type EventResult =
   | { status: "invalid"; reason: string };
 
 function fromGrant(r: GrantResult): EventResult {
+  if (r.status === "unlinked") {
+    return {
+      status: "ignored",
+      reason: "Minecraft-аккаунт не привязан к зарегистрированному профилю Tuesday",
+    };
+  }
   return r;
+}
+
+function resolveAchievementTier(
+  tier: AchievementTier | undefined,
+  difficulty: AchievementDifficulty | undefined,
+): AchievementTier | null {
+  if (tier) return tier;
+  if (!difficulty) return null;
+  const legacyMap: Record<AchievementDifficulty, AchievementTier> = {
+    easy: "normal",
+    normal: "gold",
+    hard: "goal",
+    legendary: "challenge",
+  };
+  return legacyMap[difficulty];
+}
+
+async function isRegisteredLinkedUuid(mcUuid: string): Promise<boolean> {
+  const [owner] = await db
+    .select({ userId: player.userId })
+    .from(player)
+    .where(eq(player.mcUuid, mcUuid))
+    .limit(1);
+  return Boolean(owner);
 }
 
 export async function processEvent(raw: unknown): Promise<EventResult> {
@@ -142,6 +176,18 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     return { status: "invalid", reason: z.prettifyError(parsed.error) };
   }
   const event = parsed.data;
+
+  const rewardEvent =
+    event.type === "achievement" ||
+    event.type === "city" ||
+    event.type === "playtime" ||
+    event.type === "activity";
+  if (rewardEvent && !(await isRegisteredLinkedUuid(event.uuid))) {
+    return {
+      status: "ignored",
+      reason: "Minecraft-аккаунт не привязан к зарегистрированному профилю Tuesday",
+    };
+  }
 
   if (event.name) {
     try {
@@ -162,7 +208,14 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
 
   switch (event.type) {
     case "achievement": {
-      const amount = REWARDS.achievement[event.difficulty];
+      const tier = resolveAchievementTier(event.tier, event.difficulty);
+      if (!tier) {
+        return {
+          status: "invalid",
+          reason: "для достижения нужно указать tier: normal, gold, goal или challenge",
+        };
+      }
+      const amount = REWARDS.achievement[tier];
       const result = await withTransaction((tx) =>
         grantRewardTx(tx, {
           mcUuid: event.uuid,
@@ -170,10 +223,8 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
           type: "achievement",
           ref: `achievement:${event.achievementId}`,
           idempotencyKey: `ach:${event.uuid}:${event.achievementId}`,
-          meta: {
-            achievementId: event.achievementId,
-            difficulty: event.difficulty,
-          },
+          meta: { achievementId: event.achievementId, tier },
+          requireLinked: true,
         }),
       );
       if (result.status === "pending") await claimIfLinked(event.uuid);
@@ -195,6 +246,7 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
           ref: `city:${event.cityId}`,
           idempotencyKey: `city:${event.uuid}`,
           meta: { cityId: event.cityId, members: event.members },
+          requireLinked: true,
         }),
       );
       if (result.status === "pending") await claimIfLinked(event.uuid);
@@ -272,7 +324,9 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
             ref: `playtime:${creditedUnits}`,
             idempotencyKey: `playtime:${event.uuid}:${creditedUnits}`,
             meta: { units: newUnits, totalUnits: creditedUnits },
+            requireLinked: true,
           });
+          if (grant.status === "unlinked") return fromGrant(grant);
           await tx
             .update(playtimeProgress)
             .set({ creditedUnits })
@@ -286,32 +340,39 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     }
 
     case "activity": {
+      const configured = REWARDS.activity[event.activity];
       let amount: number;
-      if (event.activity === "custom") {
-        if (!event.amount)
-          return {
-            status: "invalid",
-            reason: 'для активности "custom" нужно поле amount',
-          };
+      if (event.amount !== undefined) {
         amount = event.amount;
-      } else {
-        const configured = REWARDS.activity[event.activity];
-        if (!configured) {
-          return {
-            status: "invalid",
-            reason: `неизвестный код активности "${event.activity}". Доступны: ${ACTIVITY_CODES.join(", ")}, custom`,
-          };
-        }
+      } else if (event.activity === "custom") {
+        return {
+          status: "invalid",
+          reason: 'для активности "custom" нужно поле amount',
+        };
+      } else if (configured !== undefined) {
         amount = configured;
+      } else {
+        return {
+          status: "invalid",
+          reason: `неизвестный код активности "${event.activity}". Доступны: ${ACTIVITY_CODES.join(", ")}, custom`,
+        };
       }
+
       const result = await withTransaction((tx) =>
         grantRewardTx(tx, {
           mcUuid: event.uuid,
           amount,
           type: "activity",
-          ref: `activity:${event.activity}`,
+          ref: event.reason
+            ? `activity:${event.activity}:${event.reason}`
+            : `activity:${event.activity}`,
           idempotencyKey: `act:${event.eventId}:${event.uuid}`,
-          meta: { activity: event.activity, eventId: event.eventId },
+          meta: {
+            activity: event.activity,
+            eventId: event.eventId,
+            ...(event.reason ? { reason: event.reason } : {}),
+          },
+          requireLinked: true,
         }),
       );
       if (result.status === "pending") await claimIfLinked(event.uuid);
