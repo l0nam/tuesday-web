@@ -1,3 +1,12 @@
+export const ACHIEVEMENT_TIERS = [
+  "normal",
+  "gold",
+  "goal",
+  "challenge",
+] as const;
+export type AchievementTier = (typeof ACHIEVEMENT_TIERS)[number];
+
+// Kept for compatibility with older plugin clients that send difficulty.
 export const ACHIEVEMENT_DIFFICULTIES = [
   "easy",
   "normal",
@@ -8,11 +17,11 @@ export type AchievementDifficulty = (typeof ACHIEVEMENT_DIFFICULTIES)[number];
 
 export const REWARDS = {
   achievement: {
-    easy: 5,
-    normal: 15,
-    hard: 40,
-    legendary: 100,
-  } satisfies Record<AchievementDifficulty, number>,
+    normal: 5,
+    gold: 15,
+    goal: 40,
+    challenge: 100,
+  } satisfies Record<AchievementTier, number>,
 
   city: {
     minMembers: 10,
