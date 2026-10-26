@@ -89,19 +89,6 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const textureId = isNickname ? await getStoredTextureId(player) : null;
   const encodedPlayer = encodeURIComponent(player);
   const sizeSuffix = `/${size}.png`;
-  const candidates = [
-    // A stored texture ID is most accurate for offline-mode/custom skins.
-    ...(textureId
-      ? [`https://mc-heads.net/avatar/${textureId}${sizeSuffix}`]
-      : []),
-    // Use independent renderers; MCHeads remains a fallback, not a single point of failure.
-    `https://crafthead.net/avatar/${encodedPlayer}${sizeSuffix}`,
-    `https://minotar.net/avatar/${encodedPlayer}${sizeSuffix}`,
-    `https://mc-heads.net/avatar/${encodedPlayer}${sizeSuffix}`,
-    `https://crafthead.net/avatar/MHF_Steve${sizeSuffix}`,
-    `https://mc-heads.net/avatar/MHF_Steve${sizeSuffix}`,
-  ];
-
   // The stored texture (offline/custom skins) gets priority. Avoid serial timeouts
   // across multiple external providers: try public fallbacks concurrently.
   if (textureId) {
