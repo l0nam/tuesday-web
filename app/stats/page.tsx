@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { after, connection } from "next/server";
+import { connection } from "next/server";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 import { CopyIp } from "@/components/stats/copy-ip";
@@ -13,7 +13,6 @@ import {
   ONLINE,
   fetchServerStatus,
   getOnlineHistory,
-  recordOnlineSample,
 } from "@/lib/stats/online";
 import {
   PLAYERS_PER_PAGE,
@@ -61,11 +60,6 @@ export default function StatsPage({ searchParams }: Props) {
 async function ServerCard() {
   await connection();
   const status = await fetchServerStatus();
-  after(() =>
-    recordOnlineSample(status).catch((error) =>
-      console.error("[stats] не удалось записать онлайн:", error),
-    ),
-  );
   const { points, now } = await getOnlineHistory();
 
   return (
