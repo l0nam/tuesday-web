@@ -25,7 +25,7 @@ export function PlayerHead({
 
   const src =
     hasError || !normalizedNickname
-      ? `https://mc-heads.net/avatar/c06f89064c8a49119c29ea1dbd1aab82/${size}`
+      ? `https://crafthead.net/avatar/MHF_Steve/${size}.png`
       : `/api/minecraft/head/${encodeURIComponent(normalizedNickname)}`;
 
   return (
