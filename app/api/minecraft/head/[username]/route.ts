@@ -57,9 +57,9 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     ? await getStoredTextureId(player)
     : null;
   const candidates = [
-    ...(textureId ? ["https://mc-heads.net/avatar/" + textureId + "/" + size] : []),
-    "https://mc-heads.net/avatar/" + encodeURIComponent(player) + "/" + size,
-    "https://mc-heads.net/avatar/MHF_Steve/" + size,
+    ...(textureId ? ["https://mc-heads.net/avatar/" + textureId + "/" + size + ".png"] : []),
+    "https://mc-heads.net/avatar/" + encodeURIComponent(player) + "/" + size + ".png",
+    "https://mc-heads.net/avatar/MHF_Steve/" + size + ".png",
   ];
 
   for (const url of candidates) {
