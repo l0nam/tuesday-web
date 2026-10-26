@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mcProfile } from "@/lib/db/schema";
@@ -17,12 +17,21 @@ const CACHE_CONTROL =
 
 async function getStoredSkinUrl(username: string): Promise<string | null> {
   try {
-    const [profile] = await db
+    let [profile] = await db
       .select({ skinUrl: mcProfile.skinUrl })
       .from(mcProfile)
       .where(eq(mcProfile.name, username))
       .orderBy(desc(mcProfile.updatedAt))
       .limit(1);
+
+    if (!profile) {
+      [profile] = await db
+        .select({ skinUrl: mcProfile.skinUrl })
+        .from(mcProfile)
+        .where(sql`lower(${mcProfile.name}) = ${username.toLowerCase()}`)
+        .orderBy(desc(mcProfile.updatedAt))
+        .limit(1);
+    }
 
     const skinUrl = profile?.skinUrl ?? null;
     return skinUrl && TEXTURE_URL_REGEX.test(skinUrl) ? skinUrl : null;
@@ -36,7 +45,7 @@ async function proxySkin(url: string): Promise<Response | null> {
   try {
     const response = await fetch(url, {
       headers: { Accept: "image/png,image/*;q=0.9,*/*;q=0.5" },
-      signal: AbortSignal.timeout(2_500),
+      signal: AbortSignal.timeout(1_800),
       next: { revalidate: 300 },
     });
     const contentType = response.headers.get("content-type") ?? "";
@@ -76,10 +85,25 @@ export async function GET(_request: Request, { params }: RouteContext) {
     `https://mc-heads.net/skin/MHF_Steve`,
   ];
 
-  for (const url of candidates) {
-    const image = await proxySkin(url);
-    if (image) return image;
+  // Prefer the stored textures.minecraft.net URL for SkinsRestorer/offline skins.
+  if (storedSkin) {
+    const storedImage = await proxySkin(storedSkin);
+    if (storedImage) return storedImage;
   }
+
+  const fallbackUrls = [
+    `https://crafthead.net/skin/${encodedName}`,
+    `https://mc-heads.net/skin/${encodedName}`,
+  ];
+  const fallbackResults = await Promise.all(fallbackUrls.map(proxySkin));
+  const fallbackImage = fallbackResults.find((image) => image !== null);
+  if (fallbackImage) return fallbackImage;
+
+  const defaultImage = await proxySkin("https://crafthead.net/skin/MHF_Steve");
+  if (defaultImage) return defaultImage;
+
+  const lastDefaultImage = await proxySkin("https://mc-heads.net/skin/MHF_Steve");
+  if (lastDefaultImage) return lastDefaultImage;
 
   return NextResponse.json(
     { error: "Не удалось загрузить текстуру скина ни из одного источника" },
