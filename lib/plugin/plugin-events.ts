@@ -243,7 +243,7 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
       if (!tier) {
         return {
           status: "invalid",
-          reason: "для достижения нужно указать tier: normal, gold, goal или challenge",
+          reason: "для достижения нужно указать tier: task, goal или challenge",
         };
       }
       const amount = REWARDS.achievement[tier];
