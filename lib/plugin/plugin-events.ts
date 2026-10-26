@@ -9,6 +9,7 @@ import {
   recordPresence,
   setCityMembership,
   setDonate,
+  syncDonateSnapshot,
 } from "@/lib/profile/record";
 import {
   ACHIEVEMENT_DIFFICULTIES,
@@ -126,6 +127,7 @@ const cityMembershipEvent = z.object({
 });
 
 const donateEvent = z.object({
+  // Legacy one-tier sync event, retained for older plugin versions.
   type: z.literal("donate"),
   uuid: uuidField,
   name: nameField,
@@ -139,6 +141,25 @@ const donateEvent = z.object({
     .transform((value) => (value ? new Date(value) : null)),
 });
 
+const donateSnapshotTier = z.object({
+  tier: z.enum(["plus", "gold"]),
+  expiresAt: z.iso
+    .datetime({ offset: true })
+    .nullable()
+    .transform((value) => (value ? new Date(value) : null)),
+});
+
+const donateSyncEvent = z.object({
+  type: z.literal("donate_sync"),
+  uuid: uuidField,
+  name: nameField,
+  // Full snapshot: an empty array explicitly means that neither rank is active.
+  tiers: z
+    .array(donateSnapshotTier)
+    .max(2)
+    .refine((items) => new Set(items.map((item) => item.tier)).size === items.length),
+});
+
 export const pluginEventSchema = z.discriminatedUnion("type", [
   achievementEvent,
   skinEvent,
@@ -148,6 +169,7 @@ export const pluginEventSchema = z.discriminatedUnion("type", [
   presenceEvent,
   cityMembershipEvent,
   donateEvent,
+  donateSyncEvent,
 ]);
 export type PluginEvent = z.infer<typeof pluginEventSchema>;
 
@@ -316,6 +338,11 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
         };
       }
       await setDonate(event.uuid, event.tier, event.expiresAt ?? null);
+      return { status: "recorded" };
+    }
+
+    case "donate_sync": {
+      await syncDonateSnapshot(event.uuid, event.tiers);
       return { status: "recorded" };
     }
 
