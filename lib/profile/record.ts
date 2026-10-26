@@ -122,6 +122,15 @@ export async function setCityMembership(
     .onDuplicateKeyUpdate({ set: { ...values, updatedAt: new Date() } });
 }
 
+export type DonateTierSnapshot = {
+  tier: "plus" | "gold";
+  expiresAt: Date | null;
+};
+
+/**
+ * Backwards-compatible single-tier update. With the composite primary key,
+ * syncing Gold no longer overwrites Plus (or vice versa).
+ */
 export async function setDonate(
   uuid: string,
   tier: string | null,
@@ -134,5 +143,27 @@ export async function setDonate(
   await db
     .insert(playerDonate)
     .values({ mcUuid: uuid, tier, expiresAt })
-    .onDuplicateKeyUpdate({ set: { tier, expiresAt, updatedAt: new Date() } });
+    .onDuplicateKeyUpdate({ set: { expiresAt, updatedAt: new Date() } });
+}
+
+/**
+ * Replaces the full set of ranks observed in LuckPerms, allowing multiple
+ * temporary ranks to retain independent expiration timestamps.
+ */
+export async function syncDonateSnapshot(
+  uuid: string,
+  tiers: DonateTierSnapshot[],
+) {
+  await withTransaction(async (tx) => {
+    await tx.delete(playerDonate).where(eq(playerDonate.mcUuid, uuid));
+    if (tiers.length === 0) return;
+
+    await tx.insert(playerDonate).values(
+      tiers.map(({ tier, expiresAt }) => ({
+        mcUuid: uuid,
+        tier,
+        expiresAt,
+      })),
+    );
+  });
 }
