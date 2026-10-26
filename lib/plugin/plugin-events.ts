@@ -39,7 +39,7 @@ const keyField = z
   .string()
   .min(1)
   .max(100)
-  .regex(/^[\w.:/\-]+$/, "допустимы буквы, цифры и . _ : / -");
+  .regex(/^[\w.:\/\-]+$/, "допустимы буквы, цифры и . _ : / -");
 
 const achievementEvent = z.object({
   type: z.literal("achievement"),
