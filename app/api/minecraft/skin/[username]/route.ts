@@ -32,6 +32,28 @@ async function getStoredSkinUrl(username: string): Promise<string | null> {
   }
 }
 
+async function proxySkin(url: string): Promise<Response | null> {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "image/png,image/*;q=0.9,*/*;q=0.5" },
+      signal: AbortSignal.timeout(2_500),
+      next: { revalidate: 300 },
+    });
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok || !contentType.startsWith("image/")) return null;
+
+    return new Response(await response.arrayBuffer(), {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": CACHE_CONTROL,
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_request: Request, { params }: RouteContext) {
   const { username } = await params;
 
@@ -42,36 +64,25 @@ export async function GET(_request: Request, { params }: RouteContext) {
     );
   }
 
+  const encodedName = encodeURIComponent(username);
   const storedSkin = await getStoredSkinUrl(username);
   const candidates = [
     ...(storedSkin ? [storedSkin] : []),
-    "https://mc-heads.net/skin/" + encodeURIComponent(username),
-    "https://mc-heads.net/skin/MHF_Steve",
+    // These endpoints work for normal online-mode accounts; the plugin stores the actual
+    // textures.minecraft.net URL for SkinsRestorer/offline-mode skins.
+    `https://crafthead.net/skin/${encodedName}`,
+    `https://mc-heads.net/skin/${encodedName}`,
+    `https://crafthead.net/skin/MHF_Steve`,
+    `https://mc-heads.net/skin/MHF_Steve`,
   ];
 
   for (const url of candidates) {
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: "image/png" },
-        next: { revalidate: 300 },
-      });
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!response.ok || !contentType.startsWith("image/")) continue;
-
-      return new Response(await response.arrayBuffer(), {
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": CACHE_CONTROL,
-          "X-Content-Type-Options": "nosniff",
-        },
-      });
-    } catch {
-      // Try the next source. The last candidate is the default Steve skin.
-    }
+    const image = await proxySkin(url);
+    if (image) return image;
   }
 
   return NextResponse.json(
-    { error: "Не удалось загрузить текстуру скина" },
+    { error: "Не удалось загрузить текстуру скина ни из одного источника" },
     { status: 502 },
   );
 }
