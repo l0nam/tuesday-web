@@ -34,12 +34,36 @@ async function getStoredTextureId(username: string): Promise<string | null> {
   }
 }
 
+async function proxyImage(url: string): Promise<Response | null> {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "image/png,image/*;q=0.9,*/*;q=0.5" },
+      signal: AbortSignal.timeout(2_500),
+      next: { revalidate: 300 },
+    });
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok || !contentType.startsWith("image/")) return null;
+
+    return new Response(await response.arrayBuffer(), {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": CACHE_CONTROL,
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: RouteContext) {
   const { username } = await params;
   const player = username.trim();
   const size = Number(request.nextUrl.searchParams.get("size") ?? 64);
 
-  if (!NICKNAME_REGEX.test(player) && !UUID_REGEX.test(player)) {
+  const isUuid = UUID_REGEX.test(player);
+  const isNickname = NICKNAME_REGEX.test(player);
+  if (!isNickname && !isUuid) {
     return NextResponse.json(
       { error: "Некорректный ник или UUID игрока" },
       { status: 400 },
@@ -53,38 +77,29 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const textureId = NICKNAME_REGEX.test(player)
-    ? await getStoredTextureId(player)
-    : null;
+  const textureId = isNickname ? await getStoredTextureId(player) : null;
+  const encodedPlayer = encodeURIComponent(player);
+  const sizeSuffix = `/${size}.png`;
   const candidates = [
-    ...(textureId ? ["https://mc-heads.net/avatar/" + textureId + "/" + size + ".png"] : []),
-    "https://mc-heads.net/avatar/" + encodeURIComponent(player) + "/" + size + ".png",
-    "https://mc-heads.net/avatar/MHF_Steve/" + size + ".png",
+    // A stored texture ID is most accurate for offline-mode/custom skins.
+    ...(textureId
+      ? [`https://mc-heads.net/avatar/${textureId}${sizeSuffix}`]
+      : []),
+    // Use independent renderers; MCHeads remains a fallback, not a single point of failure.
+    `https://crafthead.net/avatar/${encodedPlayer}${sizeSuffix}`,
+    `https://minotar.net/avatar/${encodedPlayer}${sizeSuffix}`,
+    `https://mc-heads.net/avatar/${encodedPlayer}${sizeSuffix}`,
+    `https://crafthead.net/avatar/MHF_Steve${sizeSuffix}`,
+    `https://mc-heads.net/avatar/MHF_Steve${sizeSuffix}`,
   ];
 
   for (const url of candidates) {
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: "image/png" },
-        next: { revalidate: 300 },
-      });
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!response.ok || !contentType.startsWith("image/")) continue;
-
-      return new Response(await response.arrayBuffer(), {
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": CACHE_CONTROL,
-          "X-Content-Type-Options": "nosniff",
-        },
-      });
-    } catch {
-      // Try the next source.
-    }
+    const image = await proxyImage(url);
+    if (image) return image;
   }
 
   return NextResponse.json(
-    { error: "Не удалось загрузить голову игрока" },
+    { error: "Не удалось загрузить голову игрока ни из одного источника" },
     { status: 502 },
   );
 }
