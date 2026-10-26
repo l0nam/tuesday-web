@@ -3,8 +3,6 @@ import { verifyPluginRequest } from "@/lib/plugin/plugin-auth";
 import { bucketStart, ONLINE, recordOnlineSample } from "@/lib/stats/online";
 import { errorResponse, jsonResponse } from "@/lib/utils/http";
 
-export const runtime = "nodejs";
-
 const serverStatusSchema = z
   .object({
     online: z.boolean(),
