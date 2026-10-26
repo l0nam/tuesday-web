@@ -24,6 +24,7 @@ import {
   grantRewardTx,
   type GrantResult,
 } from "@/lib/economy/wallet";
+import { recordOnlineSample } from "@/lib/stats/online";
 import { MC_NAME_RE, normalizeUuid } from "../utils/formatting";
 
 const uuidField = z.string().transform((value, ctx) => {
@@ -112,6 +113,13 @@ const presenceEvent = z.object({
   online: z.boolean(),
 });
 
+// Sent by the running Minecraft server; this avoids relying on Vercel timers
+// or an external scheduler for graph sampling.
+const serverStatusEvent = z.object({
+  type: z.literal("server_status"),
+  onlinePlayers: z.number().int().min(0).max(100_000),
+});
+
 const cityMembershipEvent = z.object({
   type: z.literal("city_membership"),
   uuid: uuidField,
@@ -170,6 +178,7 @@ export const pluginEventSchema = z.discriminatedUnion("type", [
   cityMembershipEvent,
   donateEvent,
   donateSyncEvent,
+  serverStatusEvent,
 ]);
 export type PluginEvent = z.infer<typeof pluginEventSchema>;
 
@@ -238,7 +247,7 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     };
   }
 
-  if (event.name) {
+  if ("uuid" in event && "name" in event && event.name) {
     try {
       await rememberName(event.uuid, event.name);
       await db
@@ -322,6 +331,15 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
 
     case "presence": {
       await recordPresence(event.uuid, event.online);
+      return { status: "recorded" };
+    }
+
+    case "server_status": {
+      await recordOnlineSample({
+        online: true,
+        players: event.onlinePlayers,
+        max: 0,
+      });
       return { status: "recorded" };
     }
 
