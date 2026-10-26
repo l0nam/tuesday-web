@@ -32,6 +32,7 @@ function formatAuditAction(action: string) {
     "permissions.update": "Изменил права доступа",
     "permissions.create": "Создал профиль прав",
     "balance.adjust": "Изменил баланс игрока",
+    "economy.config.update": "Изменил цены магазина и награды",
   };
 
   return labels[action] ?? action;

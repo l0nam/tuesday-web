@@ -64,6 +64,13 @@
       "when": 1793017576134,
       "tag": "0008_reassert_donate_composite_pk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1793047220616,
+      "tag": "0009_admin_economy_settings",
+      "breakpoints": true
     }
   ]
 }

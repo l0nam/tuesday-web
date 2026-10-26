@@ -21,14 +21,16 @@ import { PlayersTab } from "./players-tab";
 import { OrdersTab } from "./orders-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { PermissionsTab } from "./permissions";
+import { EconomyTab } from "./economy-tab";
 
-type Tab = "overview" | "players" | "orders" | "reviews" | "permissions";
+type Tab = "overview" | "players" | "orders" | "reviews" | "economy" | "permissions";
 
 const NAV: { id: Tab; label: string }[] = [
   { id: "overview", label: "Обзор" },
   { id: "players", label: "Игроки" },
   { id: "orders", label: "Покупки" },
   { id: "reviews", label: "Отзывы" },
+  { id: "economy", label: "Магазин и награды" },
   { id: "permissions", label: "Права доступа" },
 ];
 
@@ -392,7 +394,11 @@ export function AdminPanel({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
-  const tabs = NAV.filter((item) => item.id !== "permissions" || isAdmin);
+  const tabs = NAV.filter(
+    (item) =>
+      (item.id !== "permissions" || isAdmin) &&
+      (item.id !== "economy" || isAdmin),
+  );
   const permissionKeys = useMemo(
     () =>
       allPermissions.length ? allPermissions : Object.keys(PERMISSION_LABELS),
@@ -505,6 +511,12 @@ export function AdminPanel({ isAdmin }: { isAdmin: boolean }) {
               }}
             />
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="economy">
+              <EconomyTab />
+            </TabsContent>
+          )}
 
           {isAdmin && (
             <TabsContent value="permissions">

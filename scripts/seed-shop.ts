@@ -173,7 +173,6 @@ async function main() {
           name: item.name,
           description: item.description,
           imageUrl: item.imageUrl,
-          price: item.price,
           fulfillmentMode: item.fulfillmentMode,
           commands: item.commands,
           sortOrder: item.sortOrder,

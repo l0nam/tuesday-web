@@ -30,6 +30,12 @@ export const onlineSample = mysqlTable("online_sample", {
   online: int("online", { unsigned: true }).notNull(),
 });
 
+export const appSetting = mysqlTable("app_setting", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  value: json("value").$type<Record<string, unknown>>().notNull(),
+  updatedAt: updatedAt(),
+});
+
 export const user = mysqlTable("user", {
   id: varchar("id", { length: 36 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),

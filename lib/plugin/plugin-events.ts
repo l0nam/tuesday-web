@@ -15,7 +15,6 @@ import {
   ACHIEVEMENT_DIFFICULTIES,
   ACHIEVEMENT_TIERS,
   ACTIVITY_CODES,
-  REWARDS,
   type AchievementDifficulty,
   type AchievementTier,
 } from "@/lib/economy/rewards/config";
@@ -25,6 +24,10 @@ import {
   type GrantResult,
 } from "@/lib/economy/wallet";
 import { recordOnlineSample } from "@/lib/stats/online";
+import {
+  getRewardSettings,
+  type RewardSettings,
+} from "@/lib/economy/rewards/settings";
 import { MC_NAME_RE, normalizeUuid } from "../utils/formatting";
 
 const uuidField = z.string().transform((value, ctx) => {
@@ -102,7 +105,7 @@ const activityEvent = z.object({
   name: nameField,
   activity: z.string().regex(/^[a-z0-9_]{1,32}$/),
   eventId: keyField,
-  amount: z.number().int().min(1).max(REWARDS.customActivityMax).optional(),
+  amount: z.number().int().min(1).max(1_000_000).optional(),
   reason: z.string().trim().min(1).max(120).optional(),
 });
 
@@ -228,12 +231,16 @@ async function isRegisteredLinkedUuid(mcUuid: string): Promise<boolean> {
   return Boolean(owner);
 }
 
-export async function processEvent(raw: unknown): Promise<EventResult> {
+export async function processEvent(
+  raw: unknown,
+  configuredRewards?: RewardSettings,
+): Promise<EventResult> {
   const parsed = pluginEventSchema.safeParse(raw);
   if (!parsed.success) {
     return { status: "invalid", reason: z.prettifyError(parsed.error) };
   }
   const event = parsed.data;
+  const rewards = configuredRewards ?? (await getRewardSettings());
 
   const rewardEvent =
     event.type === "achievement" ||
@@ -277,7 +284,10 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
           reason: "для достижения нужно указать tier: task, goal или challenge",
         };
       }
-      const amount = REWARDS.achievement[tier];
+      const amount = rewards.achievement[tier];
+      if (amount === 0) {
+        return { status: "ignored", reason: "награда за это достижение отключена" };
+      }
       const result = await withTransaction((tx) =>
         grantRewardTx(tx, {
           mcUuid: event.uuid,
@@ -294,16 +304,19 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     }
 
     case "city": {
-      if (event.members < REWARDS.city.minMembers) {
+      if (event.members < rewards.city.minMembers) {
         return {
           status: "ignored",
-          reason: `в клане меньше ${REWARDS.city.minMembers} участников`,
+          reason: `в клане меньше ${rewards.city.minMembers} участников`,
         };
+      }
+      if (rewards.city.amount === 0) {
+        return { status: "ignored", reason: "награда за клан отключена" };
       }
       const result = await withTransaction((tx) =>
         grantRewardTx(tx, {
           mcUuid: event.uuid,
-          amount: REWARDS.city.amount,
+          amount: rewards.city.amount,
           type: "city",
           ref: `city:${event.cityId}`,
           idempotencyKey: `city:${event.uuid}`,
@@ -380,7 +393,7 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
         amountPerUnit,
         grantExistingTime,
         maxUnitsPerEvent,
-      } = REWARDS.playtime;
+      } = rewards.playtime;
       const totalUnits = Math.floor(event.totalSeconds / secondsPerUnit);
 
       const outcome = await withTransaction(
@@ -399,6 +412,19 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
             .from(playtimeProgress)
             .where(eq(playtimeProgress.mcUuid, event.uuid))
             .for("update");
+
+          if (amountPerUnit === 0) {
+            if (totalUnits > progress.creditedUnits) {
+              await tx
+                .update(playtimeProgress)
+                .set({ creditedUnits: totalUnits })
+                .where(eq(playtimeProgress.mcUuid, event.uuid));
+            }
+            return {
+              status: "ignored",
+              reason: "награда за наигранное время отключена",
+            };
+          }
 
           const newUnits = Math.min(
             totalUnits - progress.creditedUnits,
@@ -434,7 +460,17 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
     }
 
     case "activity": {
-      const configured = REWARDS.activity[event.activity];
+      if (
+        event.activity === "custom" &&
+        event.amount !== undefined &&
+        event.amount > rewards.customActivityMax
+      ) {
+        return {
+          status: "invalid",
+          reason: `сумма custom-активности превышает лимит ${rewards.customActivityMax}`,
+        };
+      }
+      const configured = rewards.activity[event.activity];
       let amount: number;
       if (event.amount !== undefined) {
         amount = event.amount;
@@ -450,6 +486,10 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
           status: "invalid",
           reason: `неизвестный код активности "${event.activity}". Доступны: ${ACTIVITY_CODES.join(", ")}, custom`,
         };
+      }
+
+      if (amount === 0) {
+        return { status: "ignored", reason: "награда за эту активность отключена" };
       }
 
       const result = await withTransaction((tx) =>
@@ -476,10 +516,11 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
 }
 
 export async function processBatch(items: unknown[]): Promise<EventResult[]> {
+  const rewards = await getRewardSettings();
   const results: EventResult[] = [];
   for (const item of items) {
     try {
-      results.push(await processEvent(item));
+      results.push(await processEvent(item, rewards));
     } catch (error) {
       console.error("[plugin] ошибка обработки события:", error);
       results.push({
