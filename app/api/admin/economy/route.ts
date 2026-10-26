@@ -31,6 +31,38 @@ const saveSchema = z
 
 class MissingItemsError extends Error {}
 
+function isMissingAppSettingTable(error: unknown): boolean {
+  const seen = new Set<object>();
+  let current: unknown = error;
+
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const candidate = current as {
+      code?: unknown;
+      message?: unknown;
+      cause?: unknown;
+    };
+    const message = typeof candidate.message === "string" ? candidate.message : "";
+    if (
+      /app_setting/i.test(message) &&
+      (candidate.code === "ER_NO_SUCH_TABLE" || /doesn't exist|does not exist/i.test(message))
+    ) {
+      return true;
+    }
+    current = candidate.cause;
+  }
+
+  return false;
+}
+
+function databaseMigrationRequired() {
+  return errorResponse(
+    503,
+    "database_migration_required",
+    "В базе нет таблицы app_setting. Запусти npm run db:migrate для production-базы данных, затем обнови страницу.",
+  );
+}
+
 async function listItems() {
   return db
     .select({
@@ -62,8 +94,14 @@ export async function GET(req: Request) {
   });
   if (!access.ok) return access.response;
 
-  const [items, rewards] = await Promise.all([listItems(), getEditableRewards()]);
-  return jsonResponse({ items, rewards });
+  try {
+    const [items, rewards] = await Promise.all([listItems(), getEditableRewards()]);
+    return jsonResponse({ items, rewards });
+  } catch (error) {
+    console.error("[admin/economy] failed to load configuration:", error);
+    if (isMissingAppSettingTable(error)) return databaseMigrationRequired();
+    return errorResponse(500, "load_failed", "Не удалось загрузить настройки магазина и наград");
+  }
 }
 
 export async function PATCH(req: Request) {
@@ -156,6 +194,7 @@ export async function PATCH(req: Request) {
         "Список товаров изменился. Обнови страницу и повтори сохранение",
       );
     }
+    if (isMissingAppSettingTable(error)) return databaseMigrationRequired();
     console.error("[admin/economy] failed to save configuration:", error);
     return errorResponse(
       500,
