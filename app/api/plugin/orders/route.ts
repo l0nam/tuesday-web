@@ -20,7 +20,26 @@ export async function GET(req: Request) {
     if (!Number.isInteger(offset) || offset < 0 || offset > 100_000) {
       return errorResponse(400, "bad_request", "offset: целое число от 0 до 100000");
     }
-    const result = await listPluginOrderRecords(view, limit, offset);
+    const excludedRaw = url.searchParams.get("exclude") ?? "";
+    let excludedIds: number[] = [];
+    if (excludedRaw.length > 0) {
+      const parts = excludedRaw.split(",");
+      if (parts.length > 100) {
+        return errorResponse(400, "bad_request", "exclude: не более 100 ID");
+      }
+      const parsedIds = parts.map((part) => Number(part));
+      if (parsedIds.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+        return errorResponse(400, "bad_request", "exclude: список положительных ID через запятую");
+      }
+      excludedIds = [...new Set(parsedIds)];
+    }
+
+    const result = await listPluginOrderRecords(
+      view,
+      limit,
+      offset,
+      view === "queue" ? excludedIds : [],
+    );
     return jsonResponse({ view, ...result });
   }
 
