@@ -1,7 +1,7 @@
 import { and, eq, ne, or, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withTransaction } from "@/lib/db";
-import { playtimeProgress, player } from "@/lib/db/schema";
+import { mcProfile, playtimeProgress, player } from "@/lib/db/schema";
 import { rememberName } from "@/lib/minecraft/mojang";
 import { DONATE_TIERS } from "@/lib/profile/config";
 import {
@@ -45,11 +45,31 @@ const achievementEvent = z.object({
   type: z.literal("achievement"),
   uuid: uuidField,
   name: nameField,
-  // Namespaced Minecraft advancement keys contain a slash, e.g. minecraft:story/mine_diamond.
+  // Minecraft namespaced keys may contain a slash, e.g. minecraft:story/mine_diamond.
   achievementId: keyField,
   tier: z.enum(ACHIEVEMENT_TIERS).optional(),
-  // Compatibility with old plugin versions.
+  // Legacy compatibility; the site maps these to task, goal or challenge.
   difficulty: z.enum(ACHIEVEMENT_DIFFICULTIES).optional(),
+});
+
+const skinUrlField = z.string().url().refine((value) => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "textures.minecraft.net" &&
+      /^\\/texture\\/[a-f0-9]{32,128}$/i.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}, "ожидается текстура textures.minecraft.net");
+
+const skinEvent = z.object({
+  type: z.literal("skin"),
+  uuid: uuidField,
+  name: z.string().regex(MC_NAME_RE),
+  skinUrl: skinUrlField,
 });
 
 const cityEvent = z.object({
@@ -118,6 +138,7 @@ const donateEvent = z.object({
 
 export const pluginEventSchema = z.discriminatedUnion("type", [
   achievementEvent,
+  skinEvent,
   cityEvent,
   playtimeEvent,
   activityEvent,
@@ -156,8 +177,8 @@ function resolveAchievementTier(
   if (tier) return tier;
   if (!difficulty) return null;
   const legacyMap: Record<AchievementDifficulty, AchievementTier> = {
-    easy: "normal",
-    normal: "gold",
+    easy: "task",
+    normal: "task",
     hard: "goal",
     legendary: "challenge",
   };
@@ -254,6 +275,24 @@ export async function processEvent(raw: unknown): Promise<EventResult> {
       );
       if (result.status === "pending") await claimIfLinked(event.uuid);
       return fromGrant(result);
+    }
+
+    case "skin": {
+      await db
+        .insert(mcProfile)
+        .values({
+          mcUuid: event.uuid,
+          name: event.name,
+          skinUrl: event.skinUrl,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            name: event.name,
+            skinUrl: event.skinUrl,
+            updatedAt: new Date(),
+          },
+        });
+      return { status: "recorded" };
     }
 
     case "presence": {
