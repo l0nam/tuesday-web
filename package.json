@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx scripts/migrate-with-errors.ts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed-shop.ts",
     "db:shop-fulfillment": "tsx scripts/update-shop-fulfillment.ts"
@@ -29,7 +29,8 @@
     "remark-gfm": "^4.0.1",
     "shadcn": "^4.21.4",
     "skinview3d": "^3.4.2",
-    "tw-animate-css": "^1.4.0",
+    "tw-animate-css": "^4",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
