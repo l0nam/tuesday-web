@@ -58,7 +58,8 @@ const skinUrlField = z.string().url().refine((value) => {
     return (
       url.protocol === "https:" &&
       url.hostname === "textures.minecraft.net" &&
-      /^\\/texture\\/[a-f0-9]{32,128}$/i.test(url.pathname)
+      url.pathname.startsWith("/texture/") &&
+      /^[a-f0-9]{32,128}$/i.test(url.pathname.slice("/texture/".length))
     );
   } catch {
     return false;
