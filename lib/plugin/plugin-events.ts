@@ -39,14 +39,17 @@ const keyField = z
   .string()
   .min(1)
   .max(100)
-  .regex(/^[\w.:\-]+$/, "допустимы буквы, цифры и . _ : -");
+  .regex(/^[\w.:/\-]+$/, "допустимы буквы, цифры и . _ : / -");
 
 const achievementEvent = z.object({
   type: z.literal("achievement"),
   uuid: uuidField,
   name: nameField,
+  // Namespaced Minecraft advancement keys contain a slash, e.g. minecraft:story/mine_diamond.
   achievementId: keyField,
-  difficulty: z.enum(ACHIEVEMENT_DIFFICULTIES),
+  tier: z.enum(ACHIEVEMENT_TIERS).optional(),
+  // Compatibility with old plugin versions.
+  difficulty: z.enum(ACHIEVEMENT_DIFFICULTIES).optional(),
 });
 
 const cityEvent = z.object({
