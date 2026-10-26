@@ -15,14 +15,19 @@ export interface ServerStatus {
   max: number;
 }
 
-export async function fetchServerStatus(): Promise<ServerStatus | null> {
+export async function fetchServerStatus(
+  options: { fresh?: boolean } = {},
+): Promise<ServerStatus | null> {
   try {
+    const cacheOptions = options.fresh
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 300 } };
     const res = await fetch(`https://api.mcsrvstat.us/3/${SERVER_IP}`, {
       headers: {
         "User-Agent": "Tuesday-Website/1.0 (tuesday-prime.ru)",
         Accept: "application/json",
       },
-      next: { revalidate: 300 },
+      ...cacheOptions,
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;
@@ -46,7 +51,6 @@ export function bucketStart(date: Date = new Date()): Date {
 }
 
 const g = globalThis as unknown as {
-  __tuesdayLastBucket?: number;
   __tuesdaySampler?: NodeJS.Timeout;
 };
 
@@ -54,9 +58,11 @@ export async function recordOnlineSample(
   status?: ServerStatus | null,
 ): Promise<void> {
   const bucket = bucketStart();
-  if (g.__tuesdayLastBucket === bucket.getTime()) return;
 
-  const current = status === undefined ? await fetchServerStatus() : status;
+  // The database primary key deduplicates samples for a bucket. Do not rely on
+  // process memory: Vercel Functions can run in different short-lived instances.
+  const current =
+    status === undefined ? await fetchServerStatus({ fresh: true }) : status;
   if (!current) return;
 
   const online = current.online ? current.players : 0;
@@ -64,7 +70,6 @@ export async function recordOnlineSample(
     .insert(onlineSample)
     .values({ bucket, online })
     .onDuplicateKeyUpdate({ set: { online } });
-  g.__tuesdayLastBucket = bucket.getTime();
 }
 
 export function startOnlineSampler(): void {
