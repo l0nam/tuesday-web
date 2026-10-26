@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -36,6 +37,8 @@ export default function ShopPage() {
 }
 
 async function ShopContent() {
+  await connection();
+
   const session = await getSession();
   const sync = session ? await syncLink(session.user.id) : null;
   const items = await listShopItems();
