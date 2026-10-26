@@ -43,6 +43,13 @@
       "when": 1792790036818,
       "tag": "0005_premium_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1793010541114,
+      "tag": "0006_skin_texture_and_accumulate",
+      "breakpoints": true
     }
   ]
 }
