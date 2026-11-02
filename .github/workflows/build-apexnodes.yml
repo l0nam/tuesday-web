@@ -1,0 +1,57 @@
+name: Build Tuesday for ApexNodes
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Next.js on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Build-time placeholders only. Production secrets stay in ISPmanager.
+      DATABASE_URL: mysql://build:build@127.0.0.1:3306/build
+      BETTER_AUTH_SECRET: build-only-secret-not-used-at-runtime-000000000000
+      BETTER_AUTH_URL: https://tuesday-prime.ru
+      DISCORD_CLIENT_ID: build-only
+      DISCORD_CLIENT_SECRET: build-only
+      PLUGIN_API_SECRET: build-only-plugin-secret-not-used-at-runtime-000000000000
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build -- --webpack
+
+      - name: Prepare build folder
+        run: |
+          mkdir -p deployment
+          cp -a .next deployment/.next
+          rm -rf deployment/.next/cache
+          test -s deployment/.next/BUILD_ID
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tuesday-apexnodes-next-build
+          path: deployment/
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
