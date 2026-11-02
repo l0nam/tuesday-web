@@ -11,7 +11,7 @@ type FooterLink = { label: string; href: string };
 const SERVER_LINKS: FooterLink[] = [
   { label: "Главная", href: "/" },
   { label: "Статистика", href: "/stats" },
-  { label: "Кланы", href: "/cities" },
+  { label: "Кланы", href: "/clans" },
   { label: "Магазин", href: "/shop" },
   { label: "Отзывы", href: "/reviews" },
 ];
@@ -124,6 +124,17 @@ export function Footer() {
           <p>
             Сервер не связан с Mojang Studios и Microsoft. Minecraft — торговая
             марка Mojang Synergies AB.
+          </p>
+          <p>
+            Разработка:{" "}
+            <Link
+              href="https://lonam-dev.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              L0nam
+            </Link>
           </p>
         </div>
       </div>
